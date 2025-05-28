@@ -43,6 +43,7 @@ export default function WaitingRoom() {
         .single()
         
       if (error) throw error
+      if (!data) throw new Error('Room not found')
       
       setRoom(data)
       
@@ -50,12 +51,17 @@ export default function WaitingRoom() {
       const userId = localStorage.getItem('userId') || `user_${Date.now()}`
       localStorage.setItem('userId', userId)
       
+      // 이미 참가자인지 확인
+      const isAlreadyJoined = data.participants.some((p: any) => p.id === userId)
+      
       // 호스트인지 확인
       if (data.host_id === userId) {
         setIsHost(true)
-      } else {
-        // 참가자로 추가
-        await joinRoom(roomId!, userId)
+      } else if (!isAlreadyJoined) {
+        // 참가자로 추가 (호스트가 아니고 아직 참가하지 않은 경우)
+        console.log('Joining room as participant...')
+        const updatedRoom = await joinRoom(roomId!, userId)
+        setRoom(updatedRoom)
       }
       
       setLoading(false)

@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase 프로젝트 설정
-const supabaseUrl = 'https://qjobdiwxzhhncuynwcrp.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqb2JkaXd4emhobmN1eW53Y3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzOTUyOTgsImV4cCI6MjA2Mzk3MTI5OH0.iHiIgq-5DaEelg8CM6iZoaq3eVwl-8lzQn-49jP0zQg'
+// Supabase 프로젝트 설정 - 환경 변수 사용
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qjobdiwxzhhncuynwcrp.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqb2JkaXd4emhobmN1eW53Y3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzOTUyOTgsImV4cCI6MjA2Mzk3MTI5OH0.iHiIgq-5DaEelg8CM6iZoaq3eVwl-8lzQn-49jP0zQg'
 
 // 임시 테스트를 위한 체크
 const isTestMode = false  // 이제 실제 Supabase 사용
@@ -39,7 +39,7 @@ export interface GameState {
 }
 
 // 방 생성
-export async function createRoom(gameType: 'chill' | 'fresh', hostId: string) {
+export async function createRoom(gameType: 'chill' | 'fresh', hostId: string): Promise<GameRoom> {
   const roomId = generateRoomId()
   
   // 임시 테스트 모드
@@ -56,7 +56,7 @@ export async function createRoom(gameType: 'chill' | 'fresh', hostId: string) {
       game_state: {},
       status: 'waiting',
       created_at: new Date().toISOString()
-    }
+    } as GameRoom
   }
   
   const { data, error } = await supabase
@@ -72,7 +72,7 @@ export async function createRoom(gameType: 'chill' | 'fresh', hostId: string) {
       game_state: {},
       status: 'waiting'
     })
-    .select()  // select() 추가
+    .select()
     .single()
     
   if (error) {
@@ -80,19 +80,24 @@ export async function createRoom(gameType: 'chill' | 'fresh', hostId: string) {
     throw error
   }
   
-  return data
+  if (!data) {
+    throw new Error('No data returned from Supabase')
+  }
+  
+  return data as GameRoom
 }
 
 // 방 참가
-export async function joinRoom(roomId: string, userId: string) {
+export async function joinRoom(roomId: string, userId: string): Promise<GameRoom> {
   // 현재 참가자 수 확인
   const { data: room, error: fetchError } = await supabase
     .from('rooms')
-    .select('participants')
+    .select('*')
     .eq('id', roomId)
     .single()
     
   if (fetchError) throw fetchError
+  if (!room) throw new Error('Room not found')
   
   const participantNumber = room.participants.length + 1
   const newParticipant = {
@@ -100,16 +105,21 @@ export async function joinRoom(roomId: string, userId: string) {
     name: `PT-${participantNumber}`
   }
   
+  const updatedParticipants = [...room.participants, newParticipant]
+  
   const { data, error } = await supabase
     .from('rooms')
     .update({
-      participants: [...room.participants, newParticipant]
+      participants: updatedParticipants
     })
     .eq('id', roomId)
+    .select()
     .single()
     
   if (error) throw error
-  return data
+  if (!data) throw new Error('Failed to join room')
+  
+  return data as GameRoom
 }
 
 // 실시간 구독
