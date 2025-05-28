@@ -19,12 +19,16 @@ export default function WaitingRoom() {
     
     // 실시간 구독
     const subscription = subscribeToRoom(roomId, (payload) => {
-      if (payload.new) {
-        setRoom(payload.new as GameRoom)
+      console.log('Room update received:', payload)
+      
+      if (payload.eventType === 'UPDATE' && payload.new) {
+        const updatedRoom = payload.new as GameRoom
+        setRoom(updatedRoom)
         
-        // 게임 시작 감지
-        if (payload.new.status === 'playing') {
-          navigate(`/game/${payload.new.game_type}/${roomId}`)
+        // 게임 시작 감지 (호스트가 아닌 참가자용)
+        if (updatedRoom.status === 'playing' && !isHost) {
+          console.log('Game started by host, navigating...')
+          navigate(`/game/${updatedRoom.game_type}/${roomId}`)
         }
       }
     })
@@ -75,11 +79,21 @@ export default function WaitingRoom() {
   const startGame = async () => {
     if (!isHost || !room) return
     
+    console.log('Starting game...', room.game_type)
+    
     try {
-      await supabase
+      const { error } = await supabase
         .from('rooms')
         .update({ status: 'playing' })
         .eq('id', roomId)
+      
+      if (error) {
+        console.error('게임 시작 실패:', error)
+      } else {
+        console.log('Game started successfully')
+        // 직접 게임 화면으로 이동
+        navigate(`/game/${room.game_type}/${roomId}`)
+      }
     } catch (error) {
       console.error('게임 시작 실패:', error)
     }
@@ -155,7 +169,10 @@ export default function WaitingRoom() {
       {/* 시작 버튼 (호스트만) */}
       {isHost && room && room.participants.length >= 2 && (
         <motion.button
-          onClick={startGame}
+          onClick={() => {
+            console.log('Start button clicked')
+            startGame()
+          }}
           className="w-full py-6 bg-black text-white text-xl font-bold rounded-2xl shadow-2xl"
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
