@@ -1,13 +1,11 @@
-import Peer, { DataConnection } from 'peerjs'
+import Peer from 'peerjs'
 
 export class GamePeerManager {
   private peer: Peer
-  private connections: Map<string, DataConnection> = new Map()
-  private isHost: boolean
+  private connections: Map<string, any> = new Map()
   
   constructor(userId: string, isHost: boolean) {
     this.peer = new Peer(userId)
-    this.isHost = isHost
     
     this.peer.on('open', (id) => {
       console.log('Peer ID:', id)
@@ -27,7 +25,7 @@ export class GamePeerManager {
   }
   
   // 연결 처리
-  private handleConnection(conn: DataConnection) {
+  private handleConnection(conn: any) {
     conn.on('open', () => {
       this.connections.set(conn.peer, conn)
       console.log('Connected to:', conn.peer)
