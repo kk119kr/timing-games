@@ -25,9 +25,9 @@ export default function WaitingRoom() {
         const updatedRoom = payload.new as GameRoom
         setRoom(updatedRoom)
         
-        // 게임 시작 감지 (호스트가 아닌 참가자용)
-        if (updatedRoom.status === 'playing' && !isHost) {
-          console.log('Game started by host, navigating...')
+        // 게임 시작 감지 - 모든 참가자가 이동
+        if (updatedRoom.status === 'playing') {
+          console.log('Game started, navigating to:', `/game/${updatedRoom.game_type}/${roomId}`)
           navigate(`/game/${updatedRoom.game_type}/${roomId}`)
         }
       }
@@ -36,7 +36,7 @@ export default function WaitingRoom() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [roomId])
+  }, [roomId, navigate])  // navigate 추가
   
   const fetchRoom = async () => {
     try {

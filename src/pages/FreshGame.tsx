@@ -54,7 +54,10 @@ export default function FreshGame() {
       const userId = localStorage.getItem('userId')
       if (data.host_id === userId) {
         setIsHost(true)
-        startCountdown()
+        // 호스트가 3초 후 카운트다운 시작
+        setTimeout(() => {
+          startCountdown()
+        }, 1000)
       }
     } catch (error) {
       console.error('게임 초기화 실패:', error)
@@ -104,6 +107,7 @@ export default function FreshGame() {
   }
   
   const startRound = () => {
+    console.log('Starting round...')
     setRoundActive(true)
     setHasPressed(false)
     setButtonColor(0)
@@ -113,16 +117,26 @@ export default function FreshGame() {
     colorInterval.current = setInterval(() => {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / 4000, 1) // 4초
-      setButtonColor(progress * 100)
+      const colorValue = progress * 100
+      
+      setButtonColor(colorValue)
+      console.log('Button color:', colorValue)
       
       // 4초 후 폭발
       if (progress >= 1) {
         if (!hasPressed) {
           handleExplosion()
         }
-        if (colorInterval.current) clearInterval(colorInterval.current)
+        if (colorInterval.current) {
+          clearInterval(colorInterval.current)
+          colorInterval.current = null
+        }
+        // 라운드 종료 처리
+        setTimeout(() => {
+          endRoundForAll()
+        }, 1000)
       }
-    }, 16) // 60fps
+    }, 50) // 20fps로 업데이트
   }
   
   const handleButtonPress = async () => {
@@ -144,8 +158,18 @@ export default function FreshGame() {
     // 폭발 효과
     navigator.vibrate?.([200])
     setButtonColor(100)
+    console.log('Button exploded!')
     
     // 점수는 endRound에서 -5점으로 처리됨
+  }
+  
+  const endRoundForAll = async () => {
+    if (!room || !isHost) return
+    
+    // 호스트만 라운드 종료 처리
+    await updateGameState(roomId!, {
+      current_round: currentRound + 1
+    })
   }
   
   const endRound = async (newRoom: GameRoom) => {
@@ -299,9 +323,11 @@ export default function FreshGame() {
         animate={{ scale: hasPressed ? 0.9 : 1 }}
       >
         <motion.button
-          className="w-64 h-64 rounded-full shadow-2xl relative overflow-hidden"
+          className="w-64 h-64 rounded-full shadow-2xl relative overflow-hidden transition-colors duration-100"
           style={{
-            backgroundColor: `rgb(${255 * (buttonColor / 100)}, ${255 * (1 - buttonColor / 100)}, ${255 * (1 - buttonColor / 100)})`
+            backgroundColor: roundActive 
+              ? `rgb(${Math.round(255 * (buttonColor / 100))}, ${Math.round(255 * (1 - buttonColor / 100))}, ${Math.round(255 * (1 - buttonColor / 100))})` 
+              : '#e5e7eb'
           }}
           onClick={handleButtonPress}
           disabled={!roundActive || hasPressed}
