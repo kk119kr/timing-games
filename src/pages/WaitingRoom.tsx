@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase, subscribeToRoom, GameRoom, joinRoom } from '../lib/supabase'
+import { supabase, subscribeToRoom, joinRoom } from '../lib/supabase'
+import type { GameRoom } from '../lib/supabase'
 
 export default function WaitingRoom() {
   const { roomId } = useParams<{ roomId: string }>()

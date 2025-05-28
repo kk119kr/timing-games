@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase, subscribeToRoom, GameRoom, updateGameState } from '../lib/supabase'
+import { supabase, subscribeToRoom, updateGameState } from '../lib/supabase'
+import type { GameRoom } from '../lib/supabase'
 import { GamePeerManager } from '../lib/peer'
 
 export default function ChillGame() {
@@ -11,9 +12,8 @@ export default function ChillGame() {
   const [myIndex, setMyIndex] = useState<number>(-1)
   const [isGlowing, setIsGlowing] = useState(false)
   const [winner, setWinner] = useState<string | null>(null)
-  const [isHost, setIsHost] = useState(false)
   const peerManager = useRef<GamePeerManager | null>(null)
-  const glowInterval = useRef<NodeJS.Timeout | null>(null)
+  const glowInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   
   useEffect(() => {
     if (!roomId) return
@@ -46,7 +46,7 @@ export default function ChillGame() {
     
     return () => {
       subscription.unsubscribe()
-      if (glowInterval.current) clearInterval(glowInterval.current)
+      if (glowInterval.current) clearTimeout(glowInterval.current)
       peerManager.current?.destroy()
     }
   }, [roomId])
@@ -70,7 +70,6 @@ export default function ChillGame() {
       
       // 호스트 확인
       if (data.host_id === userId) {
-        setIsHost(true)
         startGlowSequence(data)
       }
       
@@ -88,7 +87,7 @@ export default function ChillGame() {
     const minRounds = 3
     const totalParticipants = roomData.participants.length
     
-    glowInterval.current = setInterval(async () => {
+    const runGlow = async () => {
       // 다음 참가자로 이동
       currentIndex = (currentIndex + 1) % totalParticipants
       
@@ -115,13 +114,16 @@ export default function ChillGame() {
             glowing_index: winnerIndex,
             winner: winner.name 
           })
-        } else {
-          // 속도 조정
-          if (glowInterval.current) clearInterval(glowInterval.current)
-          glowInterval.current = setInterval(arguments.callee, speed)
+          return
         }
       }
-    }, speed)
+      
+      // 다음 실행 예약
+      glowInterval.current = setTimeout(runGlow, speed)
+    }
+    
+    // 첫 실행
+    glowInterval.current = setTimeout(runGlow, speed)
   }
   
   const handleWinner = (winnerName: string) => {
