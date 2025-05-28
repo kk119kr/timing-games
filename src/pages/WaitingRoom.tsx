@@ -57,6 +57,7 @@ export default function WaitingRoom() {
       // 호스트인지 확인
       if (data.host_id === userId) {
         setIsHost(true)
+        console.log('You are the host')
       } else if (!isAlreadyJoined) {
         // 참가자로 추가 (호스트가 아니고 아직 참가하지 않은 경우)
         console.log('Joining room as participant...')
@@ -177,7 +178,7 @@ export default function WaitingRoom() {
       )}
       
       {/* 최소 인원 안내 */}
-      {room && room.participants.length < 2 && (
+      {isHost && room && room.participants.length < 2 && (
         <p className="text-center text-gray-500">
           NEED AT LEAST 2 PLAYERS
         </p>

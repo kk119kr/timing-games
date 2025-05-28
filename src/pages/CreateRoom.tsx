@@ -19,8 +19,9 @@ export default function CreateRoom() {
     try {
       console.log('Creating room...', gameType)
       
-      // 임시 사용자 ID 생성
-      const userId = `user_${Date.now()}`
+      // 임시 사용자 ID 생성 (또는 기존 ID 사용)
+      const userId = localStorage.getItem('userId') || `user_${Date.now()}`
+      localStorage.setItem('userId', userId)
       
       // 방 생성
       const room = await createRoom(gameType as 'chill' | 'fresh', userId)
