@@ -1,8 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase 프로젝트 생성 후 여기에 URL과 Key 입력
-const supabaseUrl = 'https://supabase.com/dashboard/project/qjobdiwxzhhncuynwcrpYOUR_SUPABASE_URL'
+// Supabase 프로젝트 설정
+const supabaseUrl = 'https://qjobdiwxzhhncuynwcrp.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqb2JkaXd4emhobmN1eW53Y3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzOTUyOTgsImV4cCI6MjA2Mzk3MTI5OH0.iHiIgq-5DaEelg8CM6iZoaq3eVwl-8lzQn-49jP0zQg'
+
+// 임시 테스트를 위한 체크
+const isTestMode = false  // 이제 실제 Supabase 사용
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -39,6 +42,23 @@ export interface GameState {
 export async function createRoom(gameType: 'chill' | 'fresh', hostId: string) {
   const roomId = generateRoomId()
   
+  // 임시 테스트 모드
+  if (isTestMode) {
+    console.log('Test mode: Creating mock room', roomId)
+    return {
+      id: roomId,
+      game_type: gameType,
+      host_id: hostId,
+      participants: [{
+        id: hostId,
+        name: 'PT-1'
+      }],
+      game_state: {},
+      status: 'waiting',
+      created_at: new Date().toISOString()
+    }
+  }
+  
   const { data, error } = await supabase
     .from('rooms')
     .insert({
@@ -52,9 +72,14 @@ export async function createRoom(gameType: 'chill' | 'fresh', hostId: string) {
       game_state: {},
       status: 'waiting'
     })
+    .select()  // select() 추가
     .single()
     
-  if (error) throw error
+  if (error) {
+    console.error('Supabase error:', error)
+    throw error
+  }
+  
   return data
 }
 
@@ -89,6 +114,13 @@ export async function joinRoom(roomId: string, userId: string) {
 
 // 실시간 구독
 export function subscribeToRoom(roomId: string, callback: (payload: any) => void) {
+  if (isTestMode) {
+    // 테스트 모드에서는 가짜 구독 반환
+    return {
+      unsubscribe: () => {}
+    }
+  }
+  
   return supabase
     .channel(`room:${roomId}`)
     .on(
@@ -106,6 +138,11 @@ export function subscribeToRoom(roomId: string, callback: (payload: any) => void
 
 // 게임 상태 업데이트
 export async function updateGameState(roomId: string, gameState: Partial<GameState>) {
+  if (isTestMode) {
+    console.log('Test mode: Updating game state', gameState)
+    return
+  }
+  
   const { error } = await supabase
     .from('rooms')
     .update({ game_state: gameState })

@@ -17,15 +17,21 @@ export default function CreateRoom() {
   
   const createGameRoom = async () => {
     try {
+      console.log('Creating room...', gameType)
+      
       // 임시 사용자 ID 생성
       const userId = `user_${Date.now()}`
       
       // 방 생성
       const room = await createRoom(gameType as 'chill' | 'fresh', userId)
+      console.log('Room created:', room)
+      
       setRoomId(room.id)
       
       // QR 코드 생성
       const roomUrl = `${window.location.origin}/room/${room.id}`
+      console.log('Room URL:', roomUrl)
+      
       const qrUrl = await QRCode.toDataURL(roomUrl, {
         width: 300,
         margin: 0,
@@ -34,15 +40,18 @@ export default function CreateRoom() {
           light: '#f5f5f5'
         }
       })
+      console.log('QR generated')
+      
       setQrCodeUrl(qrUrl)
       setLoading(false)
       
-      // 호스트를 대기실로 이동
-      setTimeout(() => {
-        navigate(`/room/${room.id}`)
-      }, 2000)
+      // 호스트는 수동으로 이동하도록 변경
+      // setTimeout(() => {
+      //   navigate(`/room/${room.id}`)
+      // }, 2000)
     } catch (error) {
       console.error('방 생성 실패:', error)
+      setLoading(false)
     }
   }
   
@@ -122,6 +131,21 @@ export default function CreateRoom() {
       >
         SCAN TO JOIN
       </motion.p>
+      
+      {/* 대기실로 이동 버튼 */}
+      {roomId && (
+        <motion.button
+          onClick={() => navigate(`/room/${roomId}`)}
+          className="absolute bottom-24 px-6 py-3 bg-black text-white rounded-full text-sm font-medium"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          GO TO WAITING ROOM
+        </motion.button>
+      )}
     </motion.div>
   )
 }
