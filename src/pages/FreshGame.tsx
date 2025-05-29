@@ -71,8 +71,8 @@ export default function FreshGame() {
       
       const gameState = newRoom.game_state
       
-      // 라운드 시작
-      if (gameState.round_start_time && !roundActive) {
+      // 라운드 시작 (중복 방지)
+      if (gameState.round_start_time && !roundActive && gameState.current_round === currentRound) {
         roundStartTime.current = gameState.round_start_time
         startRound()
       }
@@ -92,6 +92,8 @@ export default function FreshGame() {
   }
   
   const startCountdown = async () => {
+    if (!isHost) return // 호스트만 카운트다운 시작
+    
     // 3, 2, 1 카운트다운
     for (let i = 3; i > 0; i--) {
       setCountdown(i)
@@ -112,9 +114,19 @@ export default function FreshGame() {
     setHasPressed(false)
     setButtonColor(0)
     
+    // 이전 인터벌 정리
+    if (colorInterval.current) {
+      clearInterval(colorInterval.current)
+      colorInterval.current = null
+    }
+    
     // 색상 변화 시작 (4초 동안 0 → 100)
     let startTime = Date.now()
+    let isExploded = false
+    
     colorInterval.current = setInterval(() => {
+      if (isExploded) return // 이미 폭발했으면 중지
+      
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / 4000, 1) // 4초
       const colorValue = progress * 100
@@ -123,7 +135,8 @@ export default function FreshGame() {
       console.log('Button color:', colorValue)
       
       // 4초 후 폭발
-      if (progress >= 1) {
+      if (progress >= 1 && !isExploded) {
+        isExploded = true
         if (!hasPressed) {
           handleExplosion()
         }
@@ -140,18 +153,28 @@ export default function FreshGame() {
   }
   
   const handleButtonPress = async () => {
-    if (!roundActive || hasPressed) return
+    if (!roundActive || hasPressed || buttonColor >= 100) return
     
+    console.log('Button pressed!')
     setHasPressed(true)
     const pressTime = Date.now() - roundStartTime.current
     
     // 서버에 프레스 시간 저장
     const userId = localStorage.getItem('userId')
-    await supabase.rpc('update_participant_press', {
-      room_id: roomId,
-      user_id: userId,
-      press_time: pressTime
-    })
+    
+    // 참가자 정보 업데이트
+    if (room) {
+      const updatedParticipants = room.participants.map(p => 
+        p.id === userId 
+          ? { ...p, has_pressed: true, press_time: pressTime }
+          : p
+      )
+      
+      await supabase
+        .from('rooms')
+        .update({ participants: updatedParticipants })
+        .eq('id', roomId)
+    }
   }
   
   const handleExplosion = () => {
