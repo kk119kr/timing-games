@@ -71,10 +71,10 @@ export default function FreshGame() {
         setIsHost(true)
         console.log('Host detected, starting countdown in 1 second...')
         
-        // 호스트는 1초 후 카운트다운 시작
+        // 호스트는 1초 후 카운트다운 시작 - userId를 직접 체크
         setTimeout(() => {
           console.log('Timer fired, calling startCountdown')
-          startCountdown()
+          startCountdownAsHost()
         }, 1000)
       } else {
         console.log('Participant detected')
@@ -134,7 +134,10 @@ export default function FreshGame() {
     setPressedOrder(pressedParticipants)
     
     // 모든 참가자가 버튼을 누른 경우 체크 (호스트만)
-    if (isHost && gamePhase === 'playing' && oldRoom) {
+    const userId = localStorage.getItem('userId')
+    const isCurrentUserHost = newRoom.host_id === userId
+    
+    if (isCurrentUserHost && gamePhase === 'playing' && oldRoom) {
       const allParticipants = newRoom.participants.length
       const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
       
@@ -154,13 +157,16 @@ export default function FreshGame() {
     }
   }
   
-  const startCountdown = async () => {
-    if (!isHost || !roomId) {
-      console.log('Not host or no roomId:', { isHost, roomId })
+  const startCountdownAsHost = async () => {
+    const userId = localStorage.getItem('userId')
+    const isCurrentUserHost = room?.host_id === userId
+    
+    if (!isCurrentUserHost || !roomId) {
+      console.log('Not host or no roomId:', { isCurrentUserHost, roomId })
       return
     }
     
-    console.log('Starting countdown broadcast...')
+    console.log('Host starting countdown broadcast...')
     
     try {
       await updateGameState(roomId, {
@@ -191,7 +197,10 @@ export default function FreshGame() {
     console.log('Countdown finished')
     
     // 호스트만 라운드 시작 신호 보냄
-    if (isHost) {
+    const userId = localStorage.getItem('userId')
+    const isCurrentUserHost = room?.host_id === userId
+    
+    if (isCurrentUserHost) {
       console.log('Host starting round...')
       try {
         await updateGameState(roomId!, {
@@ -245,7 +254,10 @@ export default function FreshGame() {
         }
         
         // 라운드 종료 처리 (호스트만)
-        if (isHost) {
+        const userId = localStorage.getItem('userId')
+        const isCurrentUserHost = room?.host_id === userId
+        
+        if (isCurrentUserHost) {
           setTimeout(() => {
             endRoundForAll()
           }, 1500) // 폭발 효과를 보여준 후 종료
@@ -294,7 +306,10 @@ export default function FreshGame() {
   }
   
   const endRoundForAll = async () => {
-    if (!room || !isHost) return
+    const userId = localStorage.getItem('userId')
+    const isCurrentUserHost = room?.host_id === userId
+    
+    if (!room || !isCurrentUserHost) return
     
     console.log('Host ending round...')
     setGamePhase('round-end')
@@ -338,7 +353,10 @@ export default function FreshGame() {
       }, 1500)
       
       setTimeout(() => {
-        if (isHost) {
+        const userId = localStorage.getItem('userId')
+        const isCurrentUserHost = room?.host_id === userId
+        
+        if (isCurrentUserHost) {
           startNextRound()
         }
       }, 2000)
@@ -397,7 +415,10 @@ export default function FreshGame() {
   }
   
   const startNextRound = async () => {
-    if (!isHost) return
+    const userId = localStorage.getItem('userId')
+    const isCurrentUserHost = room?.host_id === userId
+    
+    if (!isCurrentUserHost) return
     
     console.log('Starting next round...')
     setGamePhase('waiting')
