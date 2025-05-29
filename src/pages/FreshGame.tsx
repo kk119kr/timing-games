@@ -148,7 +148,7 @@ export default function FreshGame() {
     
     // 카운트다운 시작을 모든 참가자에게 알림
     try {
-      const result = await updateGameState(roomId, {
+      await updateGameState(roomId, {
         countdown_started: true,
         countdown_start_time: Date.now(),
         current_round: 1
