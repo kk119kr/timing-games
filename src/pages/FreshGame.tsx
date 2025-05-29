@@ -21,7 +21,6 @@ export default function FreshGame() {
   const [roundActive, setRoundActive] = useState(false)
   const [roundResults, setRoundResults] = useState<RoundResult[][]>([])
   const [showResults, setShowResults] = useState(false)
-  const [isHost, setIsHost] = useState(false)
   const [pressedOrder, setPressedOrder] = useState<string[]>([])
   const [roundEndMessage, setRoundEndMessage] = useState<string>('')
   const [gamePhase, setGamePhase] = useState<'waiting' | 'countdown' | 'playing' | 'round-end' | 'next-round' | 'final-results'>('waiting')
@@ -68,7 +67,6 @@ export default function FreshGame() {
       console.log('User ID:', userId, 'Host ID:', data.host_id)
       
       if (data.host_id === userId) {
-        setIsHost(true)
         console.log('Host detected, starting countdown in 1 second...')
         
         // 호스트는 1초 후 카운트다운 시작 - userId를 직접 체크
