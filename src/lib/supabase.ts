@@ -27,6 +27,7 @@ export interface Participant {
   score?: number
   has_pressed?: boolean
   press_order?: number
+  press_time?: number  // 추가
 }
 
 export interface GameState {
@@ -36,6 +37,9 @@ export interface GameState {
   glowing_index?: number
   button_color?: number // 0-100 빨간색 농도
   round_start_time?: number
+  round_end?: boolean
+  countdown_started?: boolean  // 추가
+  countdown_start_time?: number  // 추가
 }
 
 // 방 생성
@@ -131,7 +135,9 @@ export function subscribeToRoom(roomId: string, callback: (payload: any) => void
     }
   }
   
-  return supabase
+  console.log('Setting up subscription for room:', roomId)
+  
+  const channel = supabase
     .channel(`room:${roomId}`)
     .on(
       'postgres_changes',
@@ -141,9 +147,16 @@ export function subscribeToRoom(roomId: string, callback: (payload: any) => void
         table: 'rooms',
         filter: `id=eq.${roomId}`
       },
-      callback
+      (payload) => {
+        console.log('Realtime event received:', payload)
+        callback(payload)
+      }
     )
-    .subscribe()
+    .subscribe((status) => {
+      console.log('Subscription status:', status)
+    })
+    
+  return channel
 }
 
 // 게임 상태 업데이트
