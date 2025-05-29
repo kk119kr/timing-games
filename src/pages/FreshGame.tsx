@@ -14,7 +14,7 @@ export default function FreshGame() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
   const [room, setRoom] = useState<GameRoom | null>(null)
-  const [currentRound, setCurrentRound] = useState(1) // 기본값 1로 설정
+  const [currentRound, setCurrentRound] = useState(1)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [buttonColor, setButtonColor] = useState(0)
   const [hasPressed, setHasPressed] = useState(false)
@@ -34,27 +34,17 @@ export default function FreshGame() {
     console.log('FreshGame mounted with roomId:', roomId)
     initializeGame()
     
-    // 실시간 구독 (한 번만)
-    const subscription = subscribeToRoom(roomId, handleRoomUpdate)
+    // 실시간 구독 설정 (이벤트 타입 수정)
+    const subscription = subscribeToRoom(roomId, (payload) => {
+      console.log('Room update payload:', payload)
+      handleRoomUpdate(payload)
+    })
     
     return () => {
       subscription.unsubscribe()
       if (colorInterval.current) clearInterval(colorInterval.current)
     }
   }, [roomId])
-  
-  // isHost가 변경될 때 카운트다운 시작
-  useEffect(() => {
-    if (isHost && room) {
-      console.log('Host detected, starting countdown in 1 second...')
-      const timer = setTimeout(() => {
-        console.log('Timer fired, calling startCountdown')
-        startCountdown()
-      }, 1000)
-      
-      return () => clearTimeout(timer)
-    }
-  }, [isHost, room])
   
   const initializeGame = async () => {
     try {
@@ -79,62 +69,86 @@ export default function FreshGame() {
       if (data.host_id === userId) {
         setIsHost(true)
         console.log('You are the host!')
+        
+        // 호스트는 1초 후 카운트다운 시작
+        setTimeout(() => {
+          console.log('Host starting countdown...')
+          startCountdown()
+        }, 1000)
       } else {
-        console.log('You are a participant, waiting for countdown...')
+        console.log('You are a participant')
+        
+        // 참가자는 이미 카운트다운이 시작되었는지 확인
+        if (data.game_state?.countdown_started) {
+          console.log('Countdown already started, joining...')
+          startLocalCountdown()
+        }
       }
     } catch (error) {
       console.error('게임 초기화 실패:', error)
+      navigate('/')
     }
   }
   
   const handleRoomUpdate = (payload: any) => {
-    console.log('Game room update:', payload)
+    console.log('Handling room update:', payload)
     
-    if (payload.eventType === 'UPDATE' && payload.new) {
-      const newRoom = payload.new as GameRoom
-      const oldRoom = room
-      setRoom(newRoom)
-      
-      const gameState = newRoom.game_state
-      console.log('Game state:', gameState)
-      
-      // 카운트다운 시작 감지 (모든 참가자)
-      if (gameState.countdown_started && !countdown && !roundActive) {
-        console.log('Countdown detected, starting local countdown...')
-        startLocalCountdown()
+    // Supabase 실시간 이벤트 구조 확인
+    let newRoom: GameRoom | null = null
+    
+    if (payload.new) {
+      newRoom = payload.new as GameRoom
+    } else if (payload.eventType === 'UPDATE' && payload.new) {
+      newRoom = payload.new as GameRoom
+    } else {
+      console.log('Unknown payload structure:', payload)
+      return
+    }
+    
+    if (!newRoom) return
+    
+    const oldRoom = room
+    setRoom(newRoom)
+    
+    const gameState = newRoom.game_state
+    console.log('Updated game state:', gameState)
+    
+    // 카운트다운 시작 감지
+    if (gameState.countdown_started && !countdown && !roundActive) {
+      console.log('Countdown detected, starting local countdown...')
+      startLocalCountdown()
+    }
+    
+    // 라운드 시작 감지
+    if (gameState.round_start_time && 
+        !roundActive && 
+        gameState.current_round === currentRound &&
+        !gameState.round_end) {
+      console.log('Round start detected')
+      roundStartTime.current = gameState.round_start_time
+      startRound()
+    }
+    
+    // 다른 참가자들의 버튼 프레스 상태 업데이트
+    const pressedParticipants = newRoom.participants
+      .filter(p => p.has_pressed)
+      .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
+      .map(p => p.name)
+    
+    setPressedOrder(pressedParticipants)
+    
+    // 모든 참가자 프레스 확인 (호스트만)
+    if (isHost && oldRoom && roundActive) {
+      const oldPressedCount = oldRoom.participants.filter(p => p.has_pressed).length
+      const newPressedCount = newRoom.participants.filter(p => p.has_pressed).length
+      if (newPressedCount > oldPressedCount) {
+        checkAllParticipantsPressed()
       }
-      
-      // 라운드 시작 (중복 방지 - 라운드 번호와 roundActive 체크)
-      if (gameState.round_start_time && 
-          !roundActive && 
-          gameState.current_round === currentRound &&
-          !gameState.round_end) {
-        console.log('Round start detected')
-        roundStartTime.current = gameState.round_start_time
-        startRound()
-      }
-      
-      // 다른 사람들이 누른 횟수 업데이트 및 순서 추적
-      const pressedParticipants = newRoom.participants
-        .filter(p => p.has_pressed)
-        .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
-        .map(p => p.name)
-      
-      setPressedOrder(pressedParticipants)
-      
-      // 모든 참가자 프레스 확인 (호스트만)
-      if (isHost && oldRoom && roundActive) {
-        const oldPressedCount = oldRoom.participants.filter(p => p.has_pressed).length
-        const newPressedCount = newRoom.participants.filter(p => p.has_pressed).length
-        if (newPressedCount > oldPressedCount) {
-          checkAllParticipantsPressed()
-        }
-      }
-      
-      // 라운드 종료
-      if (gameState.current_round && gameState.current_round > currentRound) {
-        endRound(newRoom)
-      }
+    }
+    
+    // 라운드 종료
+    if (gameState.current_round && gameState.current_round > currentRound) {
+      endRound(newRoom)
     }
   }
   
@@ -144,16 +158,15 @@ export default function FreshGame() {
       return
     }
     
-    console.log('Starting countdown broadcast...')
+    console.log('Host broadcasting countdown start...')
     
-    // 카운트다운 시작을 모든 참가자에게 알림
     try {
       await updateGameState(roomId, {
         countdown_started: true,
         countdown_start_time: Date.now(),
         current_round: 1
       })
-      console.log('Countdown broadcast sent successfully')
+      console.log('Countdown broadcast sent')
       
       // 호스트도 로컬 카운트다운 시작
       startLocalCountdown()
@@ -162,7 +175,6 @@ export default function FreshGame() {
     }
   }
   
-  // 로컬 카운트다운 (모든 참가자가 실행)
   const startLocalCountdown = async () => {
     console.log('Starting local countdown...')
     
@@ -173,15 +185,21 @@ export default function FreshGame() {
       await new Promise(resolve => setTimeout(resolve, 1000))
     }
     setCountdown(null)
+    console.log('Countdown finished')
     
-    // 호스트만 라운드 시작
+    // 호스트만 라운드 시작 신호 보냄
     if (isHost) {
-      console.log('Host starting round...')
-      await updateGameState(roomId!, {
-        round_start_time: Date.now(),
-        current_round: currentRound || 1,
-        countdown_started: false
-      })
+      console.log('Host broadcasting round start...')
+      try {
+        await updateGameState(roomId!, {
+          round_start_time: Date.now(),
+          current_round: currentRound,
+          countdown_started: false
+        })
+        console.log('Round start broadcast sent')
+      } catch (error) {
+        console.error('Failed to start round:', error)
+      }
     }
   }
   
@@ -190,7 +208,7 @@ export default function FreshGame() {
     setRoundActive(true)
     setHasPressed(false)
     setButtonColor(0)
-    setPressedOrder([]) // 순서 초기화
+    setPressedOrder([])
     
     // 이전 인터벌 정리
     if (colorInterval.current) {
@@ -203,7 +221,7 @@ export default function FreshGame() {
     let isExploded = false
     
     colorInterval.current = setInterval(() => {
-      if (isExploded || !roundActive) return // 이미 폭발했거나 라운드 끝났으면 중지
+      if (isExploded || !roundActive) return
       
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / 4000, 1) // 4초
@@ -211,7 +229,7 @@ export default function FreshGame() {
       
       setButtonColor(colorValue)
       
-      // 로그 개선 - 1초마다만 출력
+      // 1초마다 로그
       if (elapsed % 1000 < 50) {
         console.log(`Button color: ${colorValue.toFixed(0)}% (${(elapsed/1000).toFixed(1)}s)`)
       }
@@ -219,7 +237,7 @@ export default function FreshGame() {
       // 4초 후 폭발
       if (progress >= 1 && !isExploded) {
         isExploded = true
-        console.log('4 seconds reached!')
+        console.log('4 seconds reached - EXPLOSION!')
         if (!hasPressed) {
           handleExplosion()
         }
@@ -227,12 +245,15 @@ export default function FreshGame() {
           clearInterval(colorInterval.current)
           colorInterval.current = null
         }
+        
         // 라운드 종료 처리
         setTimeout(() => {
-          endRoundForAll()
+          if (isHost) {
+            endRoundForAll()
+          }
         }, 1000)
       }
-    }, 50) // 20fps로 업데이트
+    }, 50)
   }
   
   const handleButtonPress = async () => {
@@ -242,10 +263,8 @@ export default function FreshGame() {
     setHasPressed(true)
     const pressTime = Date.now() - roundStartTime.current
     
-    // 서버에 프레스 시간 저장
     const userId = localStorage.getItem('userId')
     
-    // 참가자 정보 업데이트
     if (room) {
       const updatedParticipants = room.participants.map(p => 
         p.id === userId 
@@ -253,41 +272,41 @@ export default function FreshGame() {
           : p
       )
       
-      await supabase
-        .from('rooms')
-        .update({ participants: updatedParticipants })
-        .eq('id', roomId)
+      try {
+        await supabase
+          .from('rooms')
+          .update({ participants: updatedParticipants })
+          .eq('id', roomId)
+        console.log('Button press recorded')
+      } catch (error) {
+        console.error('Failed to record button press:', error)
+      }
     }
   }
   
   const handleExplosion = () => {
-    // 폭발 효과
-    navigator.vibrate?.([200])
+    navigator.vibrate?.(200)
     setButtonColor(100)
     console.log('Button exploded!')
-    
-    // 점수는 endRound에서 -5점으로 처리됨
   }
   
   const endRoundForAll = async () => {
     if (!room || !isHost) return
     
-    console.log('Ending round...')
+    console.log('Host ending round...')
     setRoundActive(false)
     
-    // 모든 참가자가 버튼을 눌렀는지 확인
-    const allPressed = room.participants.every(p => p.has_pressed)
-    
-    if (allPressed || buttonColor >= 100) {
-      // 호스트만 라운드 종료 처리
+    try {
       await updateGameState(roomId!, {
         current_round: currentRound + 1,
         round_end: true
       })
+      console.log('Round end broadcast sent')
+    } catch (error) {
+      console.error('Failed to end round:', error)
     }
   }
   
-  // 참가자 업데이트 확인
   const checkAllParticipantsPressed = async () => {
     if (!room || !isHost) return
     
@@ -299,6 +318,7 @@ export default function FreshGame() {
   }
   
   const endRound = async (newRoom: GameRoom) => {
+    console.log('Ending round', currentRound)
     setRoundActive(false)
     setRoundEndMessage(`ROUND ${currentRound} END`)
     
@@ -306,7 +326,6 @@ export default function FreshGame() {
     const results = calculateScores(newRoom.participants)
     setRoundResults(prev => [...prev, results])
     
-    // 2초 후 메시지 제거
     setTimeout(() => {
       setRoundEndMessage('')
     }, 2000)
@@ -314,16 +333,14 @@ export default function FreshGame() {
     // 다음 라운드 또는 게임 종료
     if (currentRound < 3) {
       setCurrentRound(prev => prev + 1)
-      setPressedOrder([]) // 순서 초기화
+      setPressedOrder([])
       
-      // 3초 후 다음 라운드
       setTimeout(() => {
         if (isHost) {
           startNextRound()
         }
       }, 3000)
     } else {
-      // 게임 종료
       setTimeout(() => {
         setShowResults(true)
       }, 2000)
@@ -344,11 +361,9 @@ export default function FreshGame() {
     pressed.forEach((p, index) => {
       let score = 0
       if (totalPressed % 2 === 0) {
-        // 짝수
         const middle = totalPressed / 2
         score = index < middle ? -(middle - index) : (index - middle + 1)
       } else {
-        // 홀수
         const middle = Math.floor(totalPressed / 2)
         if (index === middle) {
           score = 0
@@ -381,6 +396,8 @@ export default function FreshGame() {
   const startNextRound = async () => {
     if (!isHost) return
     
+    console.log('Starting next round...')
+    
     // 참가자 상태 초기화
     const resetParticipants = room!.participants.map(p => ({
       ...p,
@@ -388,19 +405,24 @@ export default function FreshGame() {
       press_time: null
     }))
     
-    await supabase
-      .from('rooms')
-      .update({ 
-        participants: resetParticipants,
-        game_state: {
-          ...room!.game_state,
-          round_end: false,
-          countdown_started: true,
-          countdown_start_time: Date.now(),
-          current_round: currentRound
-        }
-      })
-      .eq('id', roomId)
+    try {
+      await supabase
+        .from('rooms')
+        .update({ 
+          participants: resetParticipants,
+          game_state: {
+            ...room!.game_state,
+            round_end: false,
+            countdown_started: true,
+            countdown_start_time: Date.now(),
+            current_round: currentRound
+          }
+        })
+        .eq('id', roomId)
+      console.log('Next round setup sent')
+    } catch (error) {
+      console.error('Failed to start next round:', error)
+    }
   }
   
   const getFinalScores = () => {
@@ -445,7 +467,7 @@ export default function FreshGame() {
         ))}
       </div>
       
-      {/* 카운트다운 / 라운드 종료 메시지 - 버튼 위에 표시 */}
+      {/* 카운트다운 / 라운드 종료 메시지 */}
       <AnimatePresence mode="wait">
         {countdown && (
           <motion.div
@@ -482,7 +504,6 @@ export default function FreshGame() {
       
       {/* 메인 버튼 */}
       <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-        {/* 버튼 */}
         <motion.div
           layoutId="game-button"
           animate={{ scale: hasPressed ? 0.9 : 1 }}
@@ -513,7 +534,7 @@ export default function FreshGame() {
           </motion.button>
         </motion.div>
         
-        {/* 누른 순서 표시 - 모바일 대응 */}
+        {/* 누른 순서 표시 */}
         {pressedOrder.length > 0 && (
           <motion.div
             className="flex flex-col gap-1 md:gap-2 mt-4 md:mt-0 max-h-60 overflow-y-auto"
@@ -524,13 +545,10 @@ export default function FreshGame() {
               const totalPressed = pressedOrder.length
               let score = 0
               
-              // 점수 계산
               if (totalPressed % 2 === 0) {
-                // 짝수
                 const middle = totalPressed / 2
                 score = index < middle ? -(middle - index) : (index - middle + 1)
               } else {
-                // 홀수
                 const middle = Math.floor(totalPressed / 2)
                 if (index === middle) {
                   score = 0
@@ -570,7 +588,6 @@ export default function FreshGame() {
               )
             })}
             
-            {/* 아직 안 누른 사람 수 */}
             {(() => {
               const totalParticipants = room ? room.participants.length : 0
               const notPressedCount = totalParticipants - pressedOrder.length
@@ -631,6 +648,17 @@ export default function FreshGame() {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* 디버그 정보 (개발용) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute bottom-4 left-4 text-xs text-gray-500 bg-white p-2 rounded">
+          <div>Host: {isHost ? 'Yes' : 'No'}</div>
+          <div>Round: {currentRound}</div>
+          <div>Countdown: {countdown}</div>
+          <div>Round Active: {roundActive ? 'Yes' : 'No'}</div>
+          <div>Button Color: {buttonColor.toFixed(0)}%</div>
+        </div>
+      )}
       
       {/* 홈 버튼 */}
       {!showResults && (
