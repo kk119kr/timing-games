@@ -677,7 +677,10 @@ export default function FreshGame() {
       {/* 디버그 정보 (개발용) */}
       {process.env.NODE_ENV === 'development' && (
         <div className="absolute bottom-4 left-4 text-xs text-gray-500 bg-white p-2 rounded">
-          <div>Host: {isHost ? 'Yes' : 'No'}</div>
+          <div>Host: {(() => {
+            const userId = localStorage.getItem('userId')
+            return room?.host_id === userId ? 'Yes' : 'No'
+          })()}</div>
           <div>Round: {currentRound}</div>
           <div>Phase: {gamePhase}</div>
           <div>Countdown: {countdown}</div>
