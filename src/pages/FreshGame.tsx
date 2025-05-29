@@ -27,6 +27,7 @@ export default function FreshGame() {
   const colorInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const roundStartTime = useRef<number>(0)
   
+  // 메인 useEffect - 게임 초기화와 구독
   useEffect(() => {
     if (!roomId) return
     
@@ -40,7 +41,20 @@ export default function FreshGame() {
       subscription.unsubscribe()
       if (colorInterval.current) clearInterval(colorInterval.current)
     }
-  }, [roomId]) // roomId만 의존성으로
+  }, [roomId])
+  
+  // isHost가 변경될 때 카운트다운 시작
+  useEffect(() => {
+    if (isHost && room) {
+      console.log('Host detected, starting countdown in 1 second...')
+      const timer = setTimeout(() => {
+        console.log('Timer fired, calling startCountdown')
+        startCountdown()
+      }, 1000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [isHost, room])
   
   const initializeGame = async () => {
     try {
@@ -64,16 +78,7 @@ export default function FreshGame() {
       
       if (data.host_id === userId) {
         setIsHost(true)
-        console.log('You are the host! Starting countdown in 1 second...')
-        
-        // 직접 카운트다운 시작 (setTimeout 대신)
-        const timer = window.setTimeout(() => {
-          console.log('Timer fired, calling startCountdown')
-          startCountdown()
-        }, 1000)
-        
-        // cleanup을 위해 저장
-        return () => window.clearTimeout(timer)
+        console.log('You are the host!')
       } else {
         console.log('You are a participant, waiting for countdown...')
       }
