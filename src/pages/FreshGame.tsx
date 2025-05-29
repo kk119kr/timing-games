@@ -68,16 +68,10 @@ export default function FreshGame() {
       
       if (data.host_id === userId) {
   console.log('Host detected, starting countdown in 1 second...')
-const hostId = data.host_id // room과 동일한 정보
-setTimeout(() => {
-  const userId = localStorage.getItem('userId')
-  if (!roomId || hostId !== userId) {
-    console.log('host mismatch or missing roomId at timeout', { userId, roomId, hostId })
-    return
-  }
-  console.log('Timer fired, calling startCountdown')
-  startCountdownAsHost()
-}, 1000)
+  setTimeout(() => {
+    console.log('Timer fired, calling startCountdown')
+    startCountdownAsHost(data) // 🔥 data를 직접 넘김!
+  }, 1000)
 } else {
         console.log('Participant detected')
         
@@ -159,31 +153,33 @@ setTimeout(() => {
     }
   }
   
-  const startCountdownAsHost = async () => {
-    const userId = localStorage.getItem('userId')
-    const isCurrentUserHost = room?.host_id === userId
-    
-    if (!isCurrentUserHost || !roomId) {
-      console.log('Not host or no roomId:', { isCurrentUserHost, roomId })
-      return
-    }
-    
-    console.log('Host starting countdown broadcast...')
-    
-    try {
-      await updateGameState(roomId, {
-        countdown_started: true,
-        countdown_start_time: Date.now(),
-        current_round: 1
-      })
-      console.log('Countdown broadcast sent successfully')
-      
-      // 호스트도 로컬 카운트다운 시작
-      startLocalCountdown()
-    } catch (error) {
-      console.error('Failed to start countdown:', error)
-    }
+  const startCountdownAsHost = async (roomData: GameRoom) => {
+  const userId = localStorage.getItem('userId')
+  const isCurrentUserHost = roomData?.host_id === userId
+  if (!isCurrentUserHost || !roomId) {
+    console.log('Not host or no roomId:', {
+      isCurrentUserHost,
+      userId,
+      roomId,
+      hostId: roomData?.host_id
+    })
+    return
   }
+
+  console.log('Host starting countdown broadcast...')
+
+  try {
+    await updateGameState(roomId, {
+      countdown_started: true,
+      countdown_start_time: Date.now(),
+      current_round: 1
+    })
+    console.log('Countdown broadcast sent successfully')
+    startLocalCountdown()
+  } catch (error) {
+    console.error('Failed to start countdown:', error)
+  }
+}
   
   const startLocalCountdown = async () => {
     console.log('Starting local countdown...')
