@@ -67,14 +67,26 @@ export default function FreshGame() {
       console.log('User ID:', userId, 'Host ID:', data.host_id)
       
       if (data.host_id === userId) {
-        console.log('Host detected, starting countdown in 1 second...')
-        
-        // 호스트는 1초 후 카운트다운 시작 - userId를 직접 체크
-        setTimeout(() => {
-          console.log('Timer fired, calling startCountdown')
-          startCountdownAsHost()
-        }, 1000)
-      } else {
+  console.log('Host detected, starting countdown in 1 second...')
+
+  setTimeout(() => {
+    const userId = localStorage.getItem('userId')
+
+    // ✅ room이 최신 상태인지 확인
+    const currentHostId = room?.host_id
+    if (!room || !roomId || currentHostId !== userId) {
+      console.log('room not ready at timeout', {
+        userId,
+        roomId,
+        currentHostId
+      })
+      return
+    }
+
+    console.log('Timer fired, calling startCountdown')
+    startCountdownAsHost()
+  }, 1000)
+} else {
         console.log('Participant detected')
         
         // 참가자는 이미 카운트다운이 시작되었는지 확인
