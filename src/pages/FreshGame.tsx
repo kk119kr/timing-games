@@ -56,10 +56,13 @@ export default function FreshGame() {
       const userId = localStorage.getItem('userId')
       if (data.host_id === userId) {
         setIsHost(true)
-        // 호스트가 3초 후 카운트다운 시작
+        console.log('Host initialized, starting countdown in 1 second...')
+        // 호스트가 1초 후 카운트다운 시작
         setTimeout(() => {
           startCountdown()
         }, 1000)
+      } else {
+        console.log('Participant initialized, waiting for countdown...')
       }
     } catch (error) {
       console.error('게임 초기화 실패:', error)
@@ -67,15 +70,19 @@ export default function FreshGame() {
   }
   
   const handleRoomUpdate = (payload: any) => {
-    if (payload.new) {
+    console.log('Game room update:', payload)
+    
+    if (payload.eventType === 'UPDATE' && payload.new) {
       const newRoom = payload.new as GameRoom
       const oldRoom = room
       setRoom(newRoom)
       
       const gameState = newRoom.game_state
+      console.log('Game state:', gameState)
       
       // 카운트다운 시작 감지 (모든 참가자)
       if (gameState.countdown_started && !countdown && !roundActive) {
+        console.log('Countdown detected, starting local countdown...')
         startLocalCountdown()
       }
       
@@ -84,6 +91,7 @@ export default function FreshGame() {
           !roundActive && 
           gameState.current_round === currentRound &&
           !gameState.round_end) {
+        console.log('Round start detected')
         roundStartTime.current = gameState.round_start_time
         startRound()
       }
@@ -115,29 +123,38 @@ export default function FreshGame() {
   const startCountdown = async () => {
     if (!isHost) return // 호스트만 카운트다운 시작
     
+    console.log('Starting countdown broadcast...')
+    
     // 카운트다운 시작을 모든 참가자에게 알림
-    await updateGameState(roomId!, {
-      countdown_started: true,
-      countdown_start_time: Date.now()
-    })
+    try {
+      await updateGameState(roomId!, {
+        countdown_started: true,
+        countdown_start_time: Date.now()
+      })
+      console.log('Countdown broadcast sent')
+    } catch (error) {
+      console.error('Failed to start countdown:', error)
+    }
   }
   
   // 로컬 카운트다운 (모든 참가자가 실행)
   const startLocalCountdown = async () => {
-    console.log('Starting countdown...')
+    console.log('Starting local countdown...')
     
     // 3, 2, 1 카운트다운
     for (let i = 3; i > 0; i--) {
       setCountdown(i)
+      console.log('Countdown:', i)
       await new Promise(resolve => setTimeout(resolve, 1000))
     }
     setCountdown(null)
     
     // 호스트만 라운드 시작
     if (isHost) {
+      console.log('Host starting round...')
       await updateGameState(roomId!, {
         round_start_time: Date.now(),
-        current_round: currentRound,
+        current_round: currentRound || 1,
         countdown_started: false
       })
     }
