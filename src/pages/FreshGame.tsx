@@ -24,6 +24,7 @@ export default function FreshGame() {
   const [isHost, setIsHost] = useState(false)
   const [pressedOrder, setPressedOrder] = useState<string[]>([])
   const [roundEndMessage, setRoundEndMessage] = useState<string>('')
+  const [gamePhase, setGamePhase] = useState<'waiting' | 'countdown' | 'playing' | 'round-end' | 'next-round' | 'final-results'>('waiting')
   const colorInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const roundStartTime = useRef<number>(0)
   
@@ -34,9 +35,9 @@ export default function FreshGame() {
     console.log('FreshGame mounted with roomId:', roomId)
     initializeGame()
     
-    // 실시간 구독 설정 (이벤트 타입 수정)
+    // 실시간 구독 설정
     const subscription = subscribeToRoom(roomId, (payload) => {
-      console.log('Room update payload:', payload)
+      console.log('Game room update:', payload)
       handleRoomUpdate(payload)
     })
     
@@ -60,7 +61,7 @@ export default function FreshGame() {
         throw error
       }
       
-      console.log('Room data:', data)
+      console.log('Game state:', data.game_state)
       setRoom(data)
       
       const userId = localStorage.getItem('userId')
@@ -68,19 +69,19 @@ export default function FreshGame() {
       
       if (data.host_id === userId) {
         setIsHost(true)
-        console.log('You are the host!')
+        console.log('Host detected, starting countdown in 1 second...')
         
         // 호스트는 1초 후 카운트다운 시작
         setTimeout(() => {
-          console.log('Host starting countdown...')
+          console.log('Timer fired, calling startCountdown')
           startCountdown()
         }, 1000)
       } else {
-        console.log('You are a participant')
+        console.log('Participant detected')
         
         // 참가자는 이미 카운트다운이 시작되었는지 확인
         if (data.game_state?.countdown_started) {
-          console.log('Countdown already started, joining...')
+          console.log('Countdown detected, starting local countdown...')
           startLocalCountdown()
         }
       }
@@ -91,18 +92,12 @@ export default function FreshGame() {
   }
   
   const handleRoomUpdate = (payload: any) => {
-    console.log('Handling room update:', payload)
-    
-    // Supabase 실시간 이벤트 구조 확인
     let newRoom: GameRoom | null = null
     
     if (payload.new) {
       newRoom = payload.new as GameRoom
     } else if (payload.eventType === 'UPDATE' && payload.new) {
       newRoom = payload.new as GameRoom
-    } else {
-      console.log('Unknown payload structure:', payload)
-      return
     }
     
     if (!newRoom) return
@@ -111,20 +106,21 @@ export default function FreshGame() {
     setRoom(newRoom)
     
     const gameState = newRoom.game_state
-    console.log('Updated game state:', gameState)
+    console.log('Game state:', gameState)
     
     // 카운트다운 시작 감지
-    if (gameState.countdown_started && !countdown && !roundActive) {
+    if (gameState.countdown_started && !countdown && gamePhase === 'waiting') {
       console.log('Countdown detected, starting local countdown...')
       startLocalCountdown()
     }
     
     // 라운드 시작 감지
     if (gameState.round_start_time && 
-        !roundActive && 
+        gamePhase !== 'playing' && 
         gameState.current_round === currentRound &&
         !gameState.round_end) {
       console.log('Round start detected')
+      console.log('Starting round', currentRound)
       roundStartTime.current = gameState.round_start_time
       startRound()
     }
@@ -137,16 +133,22 @@ export default function FreshGame() {
     
     setPressedOrder(pressedParticipants)
     
-    // 모든 참가자 프레스 확인 (호스트만)
-    if (isHost && oldRoom && roundActive) {
-      const oldPressedCount = oldRoom.participants.filter(p => p.has_pressed).length
-      const newPressedCount = newRoom.participants.filter(p => p.has_pressed).length
-      if (newPressedCount > oldPressedCount) {
-        checkAllParticipantsPressed()
+    // 모든 참가자가 버튼을 누른 경우 체크 (호스트만)
+    if (isHost && gamePhase === 'playing' && oldRoom) {
+      const allParticipants = newRoom.participants.length
+      const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
+      
+      console.log(`Pressed: ${pressedCount}/${allParticipants}`)
+      
+      if (pressedCount === allParticipants && pressedCount > 0) {
+        console.log('All participants pressed, ending round')
+        setTimeout(() => {
+          endRoundForAll()
+        }, 500) // 약간의 지연을 줘서 UI 업데이트가 반영되도록
       }
     }
     
-    // 라운드 종료
+    // 라운드 종료 처리
     if (gameState.current_round && gameState.current_round > currentRound) {
       endRound(newRoom)
     }
@@ -158,7 +160,7 @@ export default function FreshGame() {
       return
     }
     
-    console.log('Host broadcasting countdown start...')
+    console.log('Starting countdown broadcast...')
     
     try {
       await updateGameState(roomId, {
@@ -166,7 +168,7 @@ export default function FreshGame() {
         countdown_start_time: Date.now(),
         current_round: 1
       })
-      console.log('Countdown broadcast sent')
+      console.log('Countdown broadcast sent successfully')
       
       // 호스트도 로컬 카운트다운 시작
       startLocalCountdown()
@@ -177,6 +179,7 @@ export default function FreshGame() {
   
   const startLocalCountdown = async () => {
     console.log('Starting local countdown...')
+    setGamePhase('countdown')
     
     // 3, 2, 1 카운트다운
     for (let i = 3; i > 0; i--) {
@@ -189,7 +192,7 @@ export default function FreshGame() {
     
     // 호스트만 라운드 시작 신호 보냄
     if (isHost) {
-      console.log('Host broadcasting round start...')
+      console.log('Host starting round...')
       try {
         await updateGameState(roomId!, {
           round_start_time: Date.now(),
@@ -205,6 +208,7 @@ export default function FreshGame() {
   
   const startRound = () => {
     console.log('Starting round', currentRound)
+    setGamePhase('playing')
     setRoundActive(true)
     setHasPressed(false)
     setButtonColor(0)
@@ -216,12 +220,12 @@ export default function FreshGame() {
       colorInterval.current = null
     }
     
-    // 색상 변화 시작 (4초 동안 0 → 100)
+    // 색상 변화 시작 (4초 동안 흰색에서 검정으로)
     const startTime = Date.now()
     let isExploded = false
     
     colorInterval.current = setInterval(() => {
-      if (isExploded || !roundActive) return
+      if (isExploded || gamePhase !== 'playing') return
       
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / 4000, 1) // 4초
@@ -229,35 +233,29 @@ export default function FreshGame() {
       
       setButtonColor(colorValue)
       
-      // 1초마다 로그
-      if (elapsed % 1000 < 50) {
-        console.log(`Button color: ${colorValue.toFixed(0)}% (${(elapsed/1000).toFixed(1)}s)`)
-      }
-      
       // 4초 후 폭발
       if (progress >= 1 && !isExploded) {
         isExploded = true
         console.log('4 seconds reached - EXPLOSION!')
-        if (!hasPressed) {
-          handleExplosion()
-        }
+        handleExplosion()
+        
         if (colorInterval.current) {
           clearInterval(colorInterval.current)
           colorInterval.current = null
         }
         
-        // 라운드 종료 처리
-        setTimeout(() => {
-          if (isHost) {
+        // 라운드 종료 처리 (호스트만)
+        if (isHost) {
+          setTimeout(() => {
             endRoundForAll()
-          }
-        }, 1000)
+          }, 1500) // 폭발 효과를 보여준 후 종료
+        }
       }
     }, 50)
   }
   
   const handleButtonPress = async () => {
-    if (!roundActive || hasPressed || buttonColor >= 100) return
+    if (gamePhase !== 'playing' || hasPressed || buttonColor >= 100) return
     
     console.log('Button pressed!')
     setHasPressed(true)
@@ -287,13 +285,19 @@ export default function FreshGame() {
   const handleExplosion = () => {
     navigator.vibrate?.(200)
     setButtonColor(100)
+    setRoundEndMessage('💥 EXPLOSION!')
     console.log('Button exploded!')
+    
+    setTimeout(() => {
+      setRoundEndMessage('')
+    }, 1500)
   }
   
   const endRoundForAll = async () => {
     if (!room || !isHost) return
     
     console.log('Host ending round...')
+    setGamePhase('round-end')
     setRoundActive(false)
     
     try {
@@ -307,18 +311,9 @@ export default function FreshGame() {
     }
   }
   
-  const checkAllParticipantsPressed = async () => {
-    if (!room || !isHost) return
-    
-    const allPressed = room.participants.every(p => p.has_pressed)
-    if (allPressed && roundActive) {
-      console.log('All participants pressed, ending round')
-      endRoundForAll()
-    }
-  }
-  
   const endRound = async (newRoom: GameRoom) => {
     console.log('Ending round', currentRound)
+    setGamePhase('round-end')
     setRoundActive(false)
     setRoundEndMessage(`ROUND ${currentRound} END`)
     
@@ -334,14 +329,22 @@ export default function FreshGame() {
     if (currentRound < 3) {
       setCurrentRound(prev => prev + 1)
       setPressedOrder([])
+      setGamePhase('next-round')
+      
+      // "Next Round" 메시지 표시
+      setRoundEndMessage('NEXT ROUND')
+      setTimeout(() => {
+        setRoundEndMessage('')
+      }, 1500)
       
       setTimeout(() => {
         if (isHost) {
           startNextRound()
         }
-      }, 3000)
+      }, 2000)
     } else {
       setTimeout(() => {
+        setGamePhase('final-results')
         setShowResults(true)
       }, 2000)
     }
@@ -397,6 +400,7 @@ export default function FreshGame() {
     if (!isHost) return
     
     console.log('Starting next round...')
+    setGamePhase('waiting')
     
     // 참가자 상태 초기화
     const resetParticipants = room!.participants.map(p => ({
@@ -467,18 +471,18 @@ export default function FreshGame() {
         ))}
       </div>
       
-      {/* 카운트다운 / 라운드 종료 메시지 */}
+      {/* 카운트다운 / 라운드 종료 메시지 - z-index 추가 */}
       <AnimatePresence mode="wait">
         {countdown && (
           <motion.div
-            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             key="countdown"
           >
             <motion.div
-              className="text-8xl font-bold"
+              className="text-8xl font-bold text-black"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 0.5 }}
             >
@@ -489,13 +493,13 @@ export default function FreshGame() {
         
         {roundEndMessage && (
           <motion.div
-            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             key="roundEnd"
           >
-            <div className="text-3xl font-bold text-center">
+            <div className="text-3xl font-bold text-center text-black bg-white/80 px-6 py-3 rounded-xl">
               {roundEndMessage}
             </div>
           </motion.div>
@@ -511,20 +515,20 @@ export default function FreshGame() {
           <motion.button
             className="w-64 h-64 rounded-full shadow-2xl relative overflow-hidden transition-colors duration-100"
             style={{
-              backgroundColor: roundActive 
-                ? `rgb(${Math.round(255 * (buttonColor / 100))}, ${Math.round(255 * (1 - buttonColor / 100))}, ${Math.round(255 * (1 - buttonColor / 100))})` 
+              backgroundColor: gamePhase === 'playing'
+                ? buttonColor >= 100 ? '#000000' : '#ffffff'
                 : '#e5e7eb'
             }}
             onClick={handleButtonPress}
-            disabled={!roundActive || hasPressed}
-            whileHover={!hasPressed && roundActive ? { scale: 1.02 } : {}}
-            whileTap={!hasPressed && roundActive ? { scale: 0.98 } : {}}
+            disabled={gamePhase !== 'playing' || hasPressed}
+            whileHover={!hasPressed && gamePhase === 'playing' ? { scale: 1.02 } : {}}
+            whileTap={!hasPressed && gamePhase === 'playing' ? { scale: 0.98 } : {}}
           >
             {/* 폭발 효과 */}
             <AnimatePresence>
               {buttonColor >= 100 && !hasPressed && (
                 <motion.div
-                  className="absolute inset-0 bg-red-900"
+                  className="absolute inset-0 bg-black"
                   initial={{ scale: 0 }}
                   animate={{ scale: [1, 1.5, 2], opacity: [1, 0.5, 0] }}
                   transition={{ duration: 0.5 }}
@@ -591,7 +595,7 @@ export default function FreshGame() {
             {(() => {
               const totalParticipants = room ? room.participants.length : 0
               const notPressedCount = totalParticipants - pressedOrder.length
-              return notPressedCount > 0 ? (
+              return notPressedCount > 0 && gamePhase === 'playing' ? (
                 <motion.div 
                   className="text-xs text-gray-400 mt-1"
                   animate={{ opacity: [0.5, 1, 0.5] }}
@@ -654,6 +658,7 @@ export default function FreshGame() {
         <div className="absolute bottom-4 left-4 text-xs text-gray-500 bg-white p-2 rounded">
           <div>Host: {isHost ? 'Yes' : 'No'}</div>
           <div>Round: {currentRound}</div>
+          <div>Phase: {gamePhase}</div>
           <div>Countdown: {countdown}</div>
           <div>Round Active: {roundActive ? 'Yes' : 'No'}</div>
           <div>Button Color: {buttonColor.toFixed(0)}%</div>
