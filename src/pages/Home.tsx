@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom'
 export default function Home() {
   const navigate = useNavigate()
   const [selectedGame, setSelectedGame] = useState<'chill' | 'fresh' | null>(null)
+  const [showJoinInput, setShowJoinInput] = useState(false)
+  const [roomId, setRoomId] = useState('')
   
   const y = useMotionValue(0)
   const opacity = useTransform(y, [-100, 0, 100], [0, 1, 0])
@@ -18,6 +20,12 @@ export default function Home() {
       setTimeout(() => {
         navigate(`/create/${game}`)
       }, 300)
+    }
+  }
+  
+  const handleJoinRoom = () => {
+    if (roomId.trim()) {
+      navigate(`/room/${roomId.trim()}`)
     }
   }
   
@@ -98,6 +106,61 @@ export default function Home() {
       >
         SLIDE TO SELECT
       </motion.p>
+      
+      {/* 방 참가 버튼/입력 */}
+      <motion.div
+        className="absolute top-10 right-10"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        {!showJoinInput ? (
+          <motion.button
+            onClick={() => setShowJoinInput(true)}
+            className="px-4 py-2 bg-black text-white rounded-full text-sm"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            JOIN ROOM
+          </motion.button>
+        ) : (
+          <motion.div
+            className="flex space-x-2"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <input
+              type="text"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+              onKeyPress={(e) => e.key === 'Enter' && handleJoinRoom()}
+              placeholder="ROOM ID"
+              className="px-4 py-2 bg-white border-2 border-black rounded-full text-sm w-32 font-mono"
+              autoFocus
+              maxLength={6}
+            />
+            <motion.button
+              onClick={handleJoinRoom}
+              className="px-4 py-2 bg-black text-white rounded-full text-sm"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              GO
+            </motion.button>
+            <motion.button
+              onClick={() => {
+                setShowJoinInput(false)
+                setRoomId('')
+              }}
+              className="px-3 py-2 bg-gray-400 text-white rounded-full text-sm"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              ✕
+            </motion.button>
+          </motion.div>
+        )}
+      </motion.div>
     </motion.div>
   )
 }
