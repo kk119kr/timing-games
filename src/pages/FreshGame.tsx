@@ -14,22 +14,23 @@ export default function FreshGame() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
   const [room, setRoom] = useState<GameRoom | null>(null)
-  const [currentRound, setCurrentRound] = useState(1)
+  const [currentRound, setCurrentRound] = useState(1) // 기본값 1로 설정
   const [countdown, setCountdown] = useState<number | null>(null)
-  const [buttonColor, setButtonColor] = useState(0) // 0-100 빨간색 농도
+  const [buttonColor, setButtonColor] = useState(0)
   const [hasPressed, setHasPressed] = useState(false)
   const [roundActive, setRoundActive] = useState(false)
   const [roundResults, setRoundResults] = useState<RoundResult[][]>([])
   const [showResults, setShowResults] = useState(false)
   const [isHost, setIsHost] = useState(false)
-  const [pressedOrder, setPressedOrder] = useState<string[]>([]) // 누른 순서
-  const [roundEndMessage, setRoundEndMessage] = useState<string>('') // 라운드 종료 메시지
+  const [pressedOrder, setPressedOrder] = useState<string[]>([])
+  const [roundEndMessage, setRoundEndMessage] = useState<string>('')
   const colorInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const roundStartTime = useRef<number>(0)
   
   useEffect(() => {
     if (!roomId) return
     
+    console.log('FreshGame mounted with roomId:', roomId)
     initializeGame()
     
     // 실시간 구독 (한 번만)
@@ -43,26 +44,38 @@ export default function FreshGame() {
   
   const initializeGame = async () => {
     try {
+      console.log('Initializing game...')
       const { data, error } = await supabase
         .from('rooms')
         .select('*')
         .eq('id', roomId)
         .single()
         
-      if (error) throw error
+      if (error) {
+        console.error('Failed to fetch room:', error)
+        throw error
+      }
       
+      console.log('Room data:', data)
       setRoom(data)
       
       const userId = localStorage.getItem('userId')
+      console.log('User ID:', userId, 'Host ID:', data.host_id)
+      
       if (data.host_id === userId) {
         setIsHost(true)
-        console.log('Host initialized, starting countdown in 1 second...')
-        // 호스트가 1초 후 카운트다운 시작
-        setTimeout(() => {
+        console.log('You are the host! Starting countdown in 1 second...')
+        
+        // 직접 카운트다운 시작 (setTimeout 대신)
+        const timer = window.setTimeout(() => {
+          console.log('Timer fired, calling startCountdown')
           startCountdown()
         }, 1000)
+        
+        // cleanup을 위해 저장
+        return () => window.clearTimeout(timer)
       } else {
-        console.log('Participant initialized, waiting for countdown...')
+        console.log('You are a participant, waiting for countdown...')
       }
     } catch (error) {
       console.error('게임 초기화 실패:', error)
@@ -121,17 +134,24 @@ export default function FreshGame() {
   }
   
   const startCountdown = async () => {
-    if (!isHost) return // 호스트만 카운트다운 시작
+    if (!isHost || !roomId) {
+      console.log('Not host or no roomId:', { isHost, roomId })
+      return
+    }
     
     console.log('Starting countdown broadcast...')
     
     // 카운트다운 시작을 모든 참가자에게 알림
     try {
-      await updateGameState(roomId!, {
+      const result = await updateGameState(roomId, {
         countdown_started: true,
-        countdown_start_time: Date.now()
+        countdown_start_time: Date.now(),
+        current_round: 1
       })
-      console.log('Countdown broadcast sent')
+      console.log('Countdown broadcast sent successfully')
+      
+      // 호스트도 로컬 카운트다운 시작
+      startLocalCountdown()
     } catch (error) {
       console.error('Failed to start countdown:', error)
     }
