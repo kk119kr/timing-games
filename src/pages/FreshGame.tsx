@@ -67,12 +67,14 @@ export default function FreshGame() {
       console.log('User ID:', userId, 'Host ID:', data.host_id)
       
       if (data.host_id === userId) {
-  console.log('Host detected, starting countdown in 1 second...')
-  setTimeout(() => {
-    console.log('Timer fired, calling startCountdown')
-    startCountdownAsHost(data) // 🔥 data를 직접 넘김!
-  }, 1000)
-} else {
+        console.log('Host detected, starting countdown in 1 second...')
+        
+        // 호스트는 1초 후 카운트다운 시작 - userId를 직접 체크
+        setTimeout(() => {
+          console.log('Timer fired, calling startCountdown')
+          startCountdownAsHost()
+        }, 1000)
+      } else {
         console.log('Participant detected')
         
         // 참가자는 이미 카운트다운이 시작되었는지 확인
@@ -153,33 +155,31 @@ export default function FreshGame() {
     }
   }
   
-  const startCountdownAsHost = async (roomData: GameRoom) => {
-  const userId = localStorage.getItem('userId')
-  const isCurrentUserHost = roomData?.host_id === userId
-  if (!isCurrentUserHost || !roomId) {
-    console.log('Not host or no roomId:', {
-      isCurrentUserHost,
-      userId,
-      roomId,
-      hostId: roomData?.host_id
-    })
-    return
+  const startCountdownAsHost = async () => {
+    const userId = localStorage.getItem('userId')
+    const isCurrentUserHost = room?.host_id === userId
+    
+    if (!isCurrentUserHost || !roomId) {
+      console.log('Not host or no roomId:', { isCurrentUserHost, roomId })
+      return
+    }
+    
+    console.log('Host starting countdown broadcast...')
+    
+    try {
+      await updateGameState(roomId, {
+        countdown_started: true,
+        countdown_start_time: Date.now(),
+        current_round: 1
+      })
+      console.log('Countdown broadcast sent successfully')
+      
+      // 호스트도 로컬 카운트다운 시작
+      startLocalCountdown()
+    } catch (error) {
+      console.error('Failed to start countdown:', error)
+    }
   }
-
-  console.log('Host starting countdown broadcast...')
-
-  try {
-    await updateGameState(roomId, {
-      countdown_started: true,
-      countdown_start_time: Date.now(),
-      current_round: 1
-    })
-    console.log('Countdown broadcast sent successfully')
-    startLocalCountdown()
-  } catch (error) {
-    console.error('Failed to start countdown:', error)
-  }
-}
   
   const startLocalCountdown = async () => {
     console.log('Starting local countdown...')
