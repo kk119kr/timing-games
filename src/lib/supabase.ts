@@ -173,19 +173,38 @@ export async function updateGameState(roomId: string, gameState: Partial<GameSta
     console.log('Test mode: Updating game state', gameState)
     return
   }
-  
+
   console.log('Updating game state for room', roomId, ':', gameState)
-  
+
+  // 🔁 기존 상태 가져오기
+  const { data: roomData, error: fetchError } = await supabase
+    .from('rooms')
+    .select('game_state')
+    .eq('id', roomId)
+    .single()
+
+  if (fetchError) {
+    console.error('Failed to fetch existing game state:', fetchError)
+    throw fetchError
+  }
+
+  const currentState = roomData?.game_state || {}
+
+  const newState = {
+    ...currentState,
+    ...gameState // 새 상태가 기존 상태를 덮어씀
+  }
+
   const { error } = await supabase
     .from('rooms')
-    .update({ game_state: gameState })
+    .update({ game_state: newState })
     .eq('id', roomId)
-    
+
   if (error) {
     console.error('Failed to update game state:', error)
     throw error
   }
-  
+
   console.log('Game state updated successfully')
 }
 
