@@ -118,6 +118,7 @@ const handleRoomUpdate = (payload: any) => {
   
   const gameState = newRoom.game_state
   console.log('Game state update:', gameState)
+  console.log('Current gamePhase:', gamePhase) // ✅ 현재 상태 로깅
   
   // 카운트다운 시작 감지 (중복 방지)
   if (gameState.countdown_started && 
@@ -128,15 +129,17 @@ const handleRoomUpdate = (payload: any) => {
     startLocalCountdown()
   }
   
-  // ✅ 라운드 시작 감지 (중복 방지 개선)
+  // ✅ 라운드 시작 감지 (더 엄격한 조건)
   if (gameState.round_start_time && 
-      !roundStarted.current && // ✅ 라운드 시작 플래그 체크
-      gamePhase !== 'playing') {
+      !roundStarted.current && 
+      gamePhase !== 'playing' &&  // ✅ 이미 playing이면 시작하지 않음
+      gamePhase !== 'countdown') { // ✅ 카운트다운 중에도 시작하지 않음
     
     console.log('NEW round start detected! Time:', gameState.round_start_time)
+    console.log('Current gamePhase before start:', gamePhase)
     console.log('Setting roundStarted flag to true')
     
-    roundStarted.current = true // ✅ 플래그 설정
+    roundStarted.current = true
     roundStartTime.current = gameState.round_start_time
     
     if (gameState.current_round) {
@@ -144,32 +147,36 @@ const handleRoomUpdate = (payload: any) => {
     }
     
     startRound()
+    return // ✅ 라운드 시작 후 나머지 로직 건너뛰기
   }
   
-  // 나머지 로직들...
-  const pressedParticipants = newRoom.participants
-    .filter(p => p.has_pressed)
-    .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
-    .map(p => p.name)
-  
-  setPressedOrder(pressedParticipants)
-  
-  // 모든 참가자가 버튼을 누른 경우 체크 (호스트만)
-  const userId = localStorage.getItem('userId')
-  const isCurrentUserHost = newRoom.host_id === userId
-  
-  if (isCurrentUserHost && gamePhase === 'playing' && oldRoom) {
-    const allParticipants = newRoom.participants.length
-    const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
+  // ✅ 이미 playing 상태에서는 추가 처리만
+  if (gamePhase === 'playing') {
+    // 다른 참가자들의 버튼 프레스 상태 업데이트만
+    const pressedParticipants = newRoom.participants
+      .filter(p => p.has_pressed)
+      .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
+      .map(p => p.name)
     
-    console.log(`Pressed: ${pressedCount}/${allParticipants}`)
+    setPressedOrder(pressedParticipants)
     
-    if (pressedCount === allParticipants && pressedCount > 0) {
-      console.log('All participants pressed, ending round')
-      setTimeout(() => {
-        endRoundForAll()
-      }, 500)
+    // 모든 참가자가 버튼을 누른 경우 체크 (호스트만)
+    const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
+    
+    if (isCurrentUserHost && oldRoom) {
+      const allParticipants = newRoom.participants.length
+      const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
+      
+      console.log(`Pressed: ${pressedCount}/${allParticipants}`)
+      
+      if (pressedCount === allParticipants && pressedCount > 0) {
+        console.log('All participants pressed, ending round')
+        setTimeout(() => {
+          endRoundForAll()
+        }, 500)
+      }
     }
+    return // ✅ playing 상태에서는 여기서 종료
   }
   
   // 라운드 종료 처리
@@ -268,13 +275,23 @@ const handleRoomUpdate = (payload: any) => {
   }
 }
   
-  const startRound = () => {
-  console.log('Starting round', currentRound)
+  
+const startRound = () => {
+  console.log('Starting round', currentRound, 'current gamePhase:', gamePhase)
+  
+  // ✅ 이미 playing 상태면 중복 실행 방지
+  if (gamePhase === 'playing') {
+    console.log('Round already playing, skipping...')
+    return
+  }
+  
   setGamePhase('playing')
   setRoundActive(true)
   setHasPressed(false)
   setButtonColor(0)
   setPressedOrder([])
+  
+  console.log('Set gamePhase to playing')
   
   // 이전 인터벌 정리
   if (colorInterval.current) {
@@ -290,8 +307,9 @@ const handleRoomUpdate = (payload: any) => {
   console.log('Starting color interval at:', startTime)
   
   colorInterval.current = setInterval(() => {
-    if (isExploded || gamePhase !== 'playing') {
-      console.log('Interval stopped:', { isExploded, gamePhase })
+    // ✅ gamePhase 체크 제거 (상태 변화로 인한 중단 방지)
+    if (isExploded) {
+      console.log('Interval stopped: explosion occurred')
       return
     }
     
@@ -318,19 +336,18 @@ const handleRoomUpdate = (payload: any) => {
       }
       
       // 라운드 종료 처리 (호스트만)
-    
-      const isCurrentUserHost = localStorage.getItem('isHost') === 'true' // ✅ localStorage 사용
+      const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
       
       if (isCurrentUserHost) {
         console.log('Host ending round after explosion')
         setTimeout(() => {
           endRoundForAll()
-        }, 1500) // 폭발 효과를 보여준 후 종료
+        }, 1500)
       }
     }
   }, 50)
   
-  console.log('Color interval started:', colorInterval.current)
+  console.log('Color interval started with ID:', colorInterval.current)
 }
   
   const handleButtonPress = async () => {
