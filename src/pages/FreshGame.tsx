@@ -47,47 +47,48 @@ export default function FreshGame() {
   }, [roomId])
   
   const initializeGame = async () => {
-    try {
-      console.log('Initializing game...')
-      const { data, error } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('id', roomId)
-        .single()
-        
-      if (error) {
-        console.error('Failed to fetch room:', error)
-        throw error
-      }
+  try {
+    console.log('Initializing game...')
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('id', roomId)
+      .single()
       
-      console.log('Game state:', data.game_state)
-      setRoom(data)
-      
-      const userId = localStorage.getItem('userId')
-      console.log('User ID:', userId, 'Host ID:', data.host_id)
-      
-      if (data.host_id === userId) {
-        console.log('Host detected, starting countdown in 1 second...')
-        
-        // 호스트는 1초 후 카운트다운 시작 - userId를 직접 체크
-        setTimeout(() => {
-          console.log('Timer fired, calling startCountdown')
-          startCountdownAsHost()
-        }, 1000)
-      } else {
-        console.log('Participant detected')
-        
-        // 참가자는 이미 카운트다운이 시작되었는지 확인
-        if (data.game_state?.countdown_started) {
-          console.log('Countdown detected, starting local countdown...')
-          startLocalCountdown()
-        }
-      }
-    } catch (error) {
-      console.error('게임 초기화 실패:', error)
-      navigate('/')
+    if (error) {
+      console.error('Failed to fetch room:', error)
+      throw error
     }
+    
+    console.log('Game state:', data.game_state)
+    setRoom(data)
+    
+    const userId = localStorage.getItem('userId')
+    console.log('User ID:', userId, 'Host ID:', data.host_id)
+    
+    // ✅ data를 직접 사용하여 호스트 확인
+    if (data.host_id === userId) {
+      console.log('Host detected, starting countdown in 1 second...')
+      
+      // 호스트는 1초 후 카운트다운 시작
+      setTimeout(() => {
+        console.log('Timer fired, calling startCountdown')
+        startCountdownAsHost(data) // ✅ room 데이터를 직접 전달
+      }, 1000)
+    } else {
+      console.log('Participant detected')
+      
+      // 참가자는 이미 카운트다운이 시작되었는지 확인
+      if (data.game_state?.countdown_started) {
+        console.log('Countdown detected, starting local countdown...')
+        startLocalCountdown()
+      }
+    }
+  } catch (error) {
+    console.error('게임 초기화 실패:', error)
+    navigate('/')
   }
+}
   
   const handleRoomUpdate = (payload: any) => {
     let newRoom: GameRoom | null = null
@@ -155,31 +156,32 @@ export default function FreshGame() {
     }
   }
   
-  const startCountdownAsHost = async () => {
-    const userId = localStorage.getItem('userId')
-    const isCurrentUserHost = room?.host_id === userId
-    
-    if (!isCurrentUserHost || !roomId) {
-      console.log('Not host or no roomId:', { isCurrentUserHost, roomId })
-      return
-    }
-    
-    console.log('Host starting countdown broadcast...')
-    
-    try {
-      await updateGameState(roomId, {
-        countdown_started: true,
-        countdown_start_time: Date.now(),
-        current_round: 1
-      })
-      console.log('Countdown broadcast sent successfully')
-      
-      // 호스트도 로컬 카운트다운 시작
-      startLocalCountdown()
-    } catch (error) {
-      console.error('Failed to start countdown:', error)
-    }
+  const startCountdownAsHost = async (roomData?: GameRoom) => {
+  const userId = localStorage.getItem('userId')
+  const currentRoom = roomData || room
+  const isCurrentUserHost = currentRoom?.host_id === userId
+  
+  if (!isCurrentUserHost || !roomId) {
+    console.log('Not host or no roomId:', { isCurrentUserHost, roomId, hasRoom: !!currentRoom })
+    return
   }
+  
+  console.log('Host starting countdown broadcast...')
+  
+  try {
+    await updateGameState(roomId, {
+      countdown_started: true,
+      countdown_start_time: Date.now(),
+      current_round: 1
+    })
+    console.log('Countdown broadcast sent successfully')
+    
+    // 호스트도 로컬 카운트다운 시작
+    startLocalCountdown()
+  } catch (error) {
+    console.error('Failed to start countdown:', error)
+  }
+}
   
   const startLocalCountdown = async () => {
     console.log('Starting local countdown...')
@@ -413,40 +415,43 @@ export default function FreshGame() {
   }
   
   const startNextRound = async () => {
-    const userId = localStorage.getItem('userId')
-    const isCurrentUserHost = room?.host_id === userId
-    
-    if (!isCurrentUserHost) return
-    
-    console.log('Starting next round...')
-    setGamePhase('waiting')
-    
-    // 참가자 상태 초기화
-    const resetParticipants = room!.participants.map(p => ({
-      ...p,
-      has_pressed: false,
-      press_time: null
-    }))
-    
-    try {
-      await supabase
-        .from('rooms')
-        .update({ 
-          participants: resetParticipants,
-          game_state: {
-            ...room!.game_state,
-            round_end: false,
-            countdown_started: true,
-            countdown_start_time: Date.now(),
-            current_round: currentRound
-          }
-        })
-        .eq('id', roomId)
-      console.log('Next round setup sent')
-    } catch (error) {
-      console.error('Failed to start next round:', error)
-    }
+  const userId = localStorage.getItem('userId')
+  const isCurrentUserHost = room?.host_id === userId
+  
+  if (!isCurrentUserHost) {
+    console.log('Not host, cannot start next round')
+    return
   }
+  
+  console.log('Starting next round...')
+  setGamePhase('waiting')
+  
+  // 참가자 상태 초기화
+  const resetParticipants = room!.participants.map(p => ({
+    ...p,
+    has_pressed: false,
+    press_time: null
+  }))
+  
+  try {
+    await supabase
+      .from('rooms')
+      .update({ 
+        participants: resetParticipants,
+        game_state: {
+          ...room!.game_state,
+          round_end: false,
+          countdown_started: true,
+          countdown_start_time: Date.now(),
+          current_round: currentRound
+        }
+      })
+      .eq('id', roomId)
+    console.log('Next round setup sent')
+  } catch (error) {
+    console.error('Failed to start next round:', error)
+  }
+}
   
   const getFinalScores = () => {
     const totalScores: Record<string, number> = {}
