@@ -101,6 +101,8 @@ export default function FreshGame() {
 
 const roundStarted = useRef(false)
 
+const allPressedHandled = useRef(false)
+
 // handleRoomUpdate 함수 수정
 // handleRoomUpdate 함수에서 모든 참가자 버튼 프레스 체크 개선
 const handleRoomUpdate = (payload: any) => {
@@ -141,6 +143,7 @@ const handleRoomUpdate = (payload: any) => {
     console.log('Setting roundStarted flag to true')
     
     roundStarted.current = true
+    allPressedHandled.current = false // ✅ 새 라운드 시작 시 리셋
     roundStartTime.current = gameState.round_start_time
     
     if (gameState.current_round) {
@@ -161,10 +164,10 @@ const handleRoomUpdate = (payload: any) => {
     
     setPressedOrder(pressedParticipants)
     
-    // ✅ 모든 참가자가 버튼을 누른 경우 즉시 체크 (호스트만)
+    // ✅ 모든 참가자가 버튼을 누른 경우 즉시 체크 (호스트만, 중복 방지)
     const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
     
-    if (isCurrentUserHost && oldRoom) {
+    if (isCurrentUserHost && oldRoom && !allPressedHandled.current) {
       const allParticipants = newRoom.participants.length
       const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
       const oldPressedCount = oldRoom.participants.filter(p => p.has_pressed).length
@@ -174,6 +177,7 @@ const handleRoomUpdate = (payload: any) => {
       // ✅ 새로운 버튼 프레스가 있고, 모든 참가자가 눌렀을 때
       if (pressedCount > oldPressedCount && pressedCount === allParticipants) {
         console.log('🎯 All participants pressed! Ending round immediately')
+        allPressedHandled.current = true // ✅ 중복 처리 방지
         
         // ✅ 색상 인터벌 즉시 중단
         if (colorInterval.current) {
@@ -185,7 +189,7 @@ const handleRoomUpdate = (payload: any) => {
         // 즉시 라운드 종료
         setTimeout(() => {
           endRoundForAll()
-        }, 100) // 아주 짧은 지연으로 UI 업데이트 반영
+        }, 100)
       }
     }
     return
@@ -406,7 +410,7 @@ const startRound = () => {
   const endRoundForAll = async () => {
   const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
   
-  console.log('Attempting to end round:', { hasRoom: !!room, isHost: isCurrentUserHost, roomId })
+  console.log('Attempting to end round:', { hasRoom: !!room, isHost: isCurrentUserHost, roomId, currentRound })
   
   if (!isCurrentUserHost) {
     console.log('Not host, cannot end round')
@@ -429,7 +433,6 @@ const startRound = () => {
   }
   
   try {
-    // ✅ room 상태에 의존하지 않고 직접 데이터베이스에서 가져오기
     const { data: currentRoom, error: fetchError } = await supabase
       .from('rooms')
       .select('*')
@@ -450,14 +453,19 @@ const startRound = () => {
       press_time: null
     }))
     
+    // ✅ 라운드 번호 증가는 3라운드 미만일 때만
+    const nextRound = currentRound < 3 ? currentRound + 1 : currentRound
+    
     const newGameState = {
       ...currentRoom.game_state,
-      current_round: currentRound + 1,
+      current_round: nextRound, // ✅ 올바른 다음 라운드 번호
       round_end: true,
-      round_start_time: null // ✅ 라운드 시작 시간 리셋
+      round_start_time: null,
+      countdown_started: false // ✅ 카운트다운 상태도 리셋
     }
     
     console.log('Updating room with new game state:', newGameState)
+    console.log('Current round:', currentRound, 'Next round:', nextRound)
     
     const { error } = await supabase
       .from('rooms')
@@ -588,7 +596,7 @@ const startRound = () => {
   console.log('startNextRound check:', {
     userId,
     isHostFromStorage,
-    currentRoundState: currentRound, // ✅ 현재 라운드 상태 로깅
+    currentRoundState: currentRound,
     roomHostId: room?.host_id,
     currentRoomExists: !!room
   })
@@ -606,6 +614,7 @@ const startRound = () => {
   // ✅ 플래그 리셋
   roundStarted.current = false
   countdownStarted.current = false
+  allPressedHandled.current = false // ✅ 추가 리셋
   
   try {
     const { data: currentRoom, error: fetchError } = await supabase
@@ -625,15 +634,14 @@ const startRound = () => {
       press_time: null
     }))
     
-    // ✅ currentRound 상태를 사용하여 올바른 라운드 번호 설정
     const nextRoundNumber = currentRound
     
+    // ✅ round_end를 false로 설정하고 깔끔하게 상태 리셋
     const newGameState = {
-      ...currentRoom.game_state,
-      round_end: false,
+      round_end: false, // ✅ 중요: 라운드 종료 상태 해제
       countdown_started: true,
       countdown_start_time: Date.now(),
-      current_round: nextRoundNumber, // ✅ 올바른 라운드 번호 사용
+      current_round: nextRoundNumber,
       round_start_time: null
     }
     
