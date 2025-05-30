@@ -32,7 +32,8 @@ export default function FreshGame() {
   if (!roomId) return
   
   console.log('FreshGame mounted with roomId:', roomId)
-  countdownStarted.current = false // ✅ 플래그 초기화
+  countdownStarted.current = false
+  roundStarted.current = false // ✅ 라운드 시작 플래그 초기화
   
   initializeGame()
     
@@ -98,6 +99,9 @@ export default function FreshGame() {
   
   const countdownStarted = useRef(false)
 
+const roundStarted = useRef(false)
+
+// handleRoomUpdate 함수 수정
 const handleRoomUpdate = (payload: any) => {
   let newRoom: GameRoom | null = null
   
@@ -124,24 +128,23 @@ const handleRoomUpdate = (payload: any) => {
     startLocalCountdown()
   }
   
-  // ✅ 라운드 시작 감지 (더 정확한 조건)
+  // ✅ 라운드 시작 감지 (중복 방지 개선)
   if (gameState.round_start_time && 
-    gameState.round_start_time !== oldRoom?.game_state?.round_start_time && 
-    gamePhase !== 'playing') {
-  
-  console.log('NEW round start detected! Time:', gameState.round_start_time)
-  console.log('Previous time:', oldRoom?.game_state?.round_start_time)
-  console.log('Starting round', gameState.current_round)
-  
-  roundStartTime.current = gameState.round_start_time
-  
-  // ✅ undefined 체크 추가
-  if (gameState.current_round) {
-    setCurrentRound(gameState.current_round)
+      !roundStarted.current && // ✅ 라운드 시작 플래그 체크
+      gamePhase !== 'playing') {
+    
+    console.log('NEW round start detected! Time:', gameState.round_start_time)
+    console.log('Setting roundStarted flag to true')
+    
+    roundStarted.current = true // ✅ 플래그 설정
+    roundStartTime.current = gameState.round_start_time
+    
+    if (gameState.current_round) {
+      setCurrentRound(gameState.current_round)
+    }
+    
+    startRound()
   }
-  
-  startRound()
-}
   
   // 나머지 로직들...
   const pressedParticipants = newRoom.participants
