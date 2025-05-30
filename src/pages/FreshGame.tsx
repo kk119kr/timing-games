@@ -111,59 +111,67 @@ const handleRoomUpdate = (payload: any) => {
   setRoom(newRoom)
   
   const gameState = newRoom.game_state
-  console.log('Game state:', gameState)
+  console.log('Game state update:', gameState)
   
-  // ✅ 카운트다운 시작 감지 (중복 방지)
+  // 카운트다운 시작 감지 (중복 방지)
   if (gameState.countdown_started && 
-      !countdownStarted.current && // ✅ 중복 방지
+      !countdownStarted.current && 
       gamePhase === 'waiting') {
     console.log('Countdown detected, starting local countdown...')
-    countdownStarted.current = true // ✅ 플래그 설정
+    countdownStarted.current = true
     startLocalCountdown()
   }
   
-  // 라운드 시작 감지
+  // ✅ 라운드 시작 감지 (더 정확한 조건)
   if (gameState.round_start_time && 
-      gamePhase !== 'playing' && 
-      gameState.current_round === currentRound &&
-      !gameState.round_end) {
-    console.log('Round start detected')
-    console.log('Starting round', currentRound)
-    roundStartTime.current = gameState.round_start_time
-    startRound()
+    gameState.round_start_time !== oldRoom?.game_state?.round_start_time && 
+    gamePhase !== 'playing') {
+  
+  console.log('NEW round start detected! Time:', gameState.round_start_time)
+  console.log('Previous time:', oldRoom?.game_state?.round_start_time)
+  console.log('Starting round', gameState.current_round)
+  
+  roundStartTime.current = gameState.round_start_time
+  
+  // ✅ undefined 체크 추가
+  if (gameState.current_round) {
+    setCurrentRound(gameState.current_round)
   }
+  
+  startRound()
+}
+  
+  // 나머지 로직들...
+  const pressedParticipants = newRoom.participants
+    .filter(p => p.has_pressed)
+    .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
+    .map(p => p.name)
+  
+  setPressedOrder(pressedParticipants)
+  
+  // 모든 참가자가 버튼을 누른 경우 체크 (호스트만)
+  const userId = localStorage.getItem('userId')
+  const isCurrentUserHost = newRoom.host_id === userId
+  
+  if (isCurrentUserHost && gamePhase === 'playing' && oldRoom) {
+    const allParticipants = newRoom.participants.length
+    const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
     
-    // 다른 참가자들의 버튼 프레스 상태 업데이트
-    const pressedParticipants = newRoom.participants
-      .filter(p => p.has_pressed)
-      .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
-      .map(p => p.name)
+    console.log(`Pressed: ${pressedCount}/${allParticipants}`)
     
-    setPressedOrder(pressedParticipants)
-    
-    // 모든 참가자가 버튼을 누른 경우 체크 (호스트만)
-    const userId = localStorage.getItem('userId')
-    const isCurrentUserHost = newRoom.host_id === userId
-    
-    if (isCurrentUserHost && gamePhase === 'playing' && oldRoom) {
-      const allParticipants = newRoom.participants.length
-      const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
-      
-      console.log(`Pressed: ${pressedCount}/${allParticipants}`)
-      
-      if (pressedCount === allParticipants && pressedCount > 0) {
-        console.log('All participants pressed, ending round')
-        setTimeout(() => {
-          endRoundForAll()
-        }, 500) // 약간의 지연을 줘서 UI 업데이트가 반영되도록
-      }
-    }
-    
-    // 라운드 종료 처리
-    if (gameState.current_round && gameState.current_round > currentRound) {
-      endRound(newRoom)
+    if (pressedCount === allParticipants && pressedCount > 0) {
+      console.log('All participants pressed, ending round')
+      setTimeout(() => {
+        endRoundForAll()
+      }, 500)
     }
   }
+  
+  // 라운드 종료 처리
+  if (gameState.current_round && gameState.current_round > currentRound) {
+    endRound(newRoom)
+  }
+}
   
   const startCountdownAsHost = async (roomData?: GameRoom) => {
   const userId = localStorage.getItem('userId')
@@ -219,101 +227,117 @@ const handleRoomUpdate = (payload: any) => {
   if (isCurrentUserHost) {
     console.log('Host starting round...')
     try {
-      const roundStartTime = Date.now()
-      await updateGameState(roomId!, {
-        round_start_time: roundStartTime,
+      const startTime = Date.now()
+      
+      // ✅ 더 명확한 상태 업데이트
+      const newGameState = {
+        round_start_time: startTime,
         current_round: currentRound,
-        countdown_started: false // ✅ 카운트다운 완료 표시
-      })
-      console.log('Round start broadcast sent with time:', roundStartTime)
+        countdown_started: false,
+        round_end: false
+      }
+      
+      console.log('Sending round start with state:', newGameState)
+      
+      await updateGameState(roomId!, newGameState)
+      
+      console.log('Round start broadcast sent successfully')
+
+// ✅ 호스트도 즉시 라운드 시작 (실시간 업데이트 대기하지 않음)
+console.log('Host starting local round immediately')
+roundStartTime.current = startTime  // ✅ roundStartTime 변수(시간값) 사용
+startRound()
+      
     } catch (error) {
       console.error('Failed to start round:', error)
     }
   } else {
-    // ✅ 참가자도 라운드 시작 대기 상태로 변경
-    console.log('Participant waiting for round start...')
+    // 참가자는 라운드 시작 신호 대기
+    console.log('Participant waiting for round start signal...')
     setGamePhase('waiting')
   }
 }
   
   const startRound = () => {
-    console.log('Starting round', currentRound)
-    setGamePhase('playing')
-    setRoundActive(true)
-    setHasPressed(false)
-    setButtonColor(0)
-    setPressedOrder([])
-    
-    // 이전 인터벌 정리
-    if (colorInterval.current) {
-      clearInterval(colorInterval.current)
-      colorInterval.current = null
-    }
-    
-    // 색상 변화 시작 (4초 동안 흰색에서 검정으로)
-    const startTime = Date.now()
-    let isExploded = false
-    
-    colorInterval.current = setInterval(() => {
-      if (isExploded || gamePhase !== 'playing') return
-      
-      const elapsed = Date.now() - startTime
-      const progress = Math.min(elapsed / 4000, 1) // 4초
-      const colorValue = progress * 100
-      
-      setButtonColor(colorValue)
-      
-      // 4초 후 폭발
-      if (progress >= 1 && !isExploded) {
-        isExploded = true
-        console.log('4 seconds reached - EXPLOSION!')
-        handleExplosion()
-        
-        if (colorInterval.current) {
-          clearInterval(colorInterval.current)
-          colorInterval.current = null
-        }
-        
-        // 라운드 종료 처리 (호스트만)
-        const userId = localStorage.getItem('userId')
-        const isCurrentUserHost = room?.host_id === userId
-        
-        if (isCurrentUserHost) {
-          setTimeout(() => {
-            endRoundForAll()
-          }, 1500) // 폭발 효과를 보여준 후 종료
-        }
-      }
-    }, 50)
+  console.log('Starting round', currentRound)
+  setGamePhase('playing')
+  setRoundActive(true)
+  setHasPressed(false)
+  setButtonColor(0)
+  setPressedOrder([])
+  
+  // 이전 인터벌 정리
+  if (colorInterval.current) {
+    clearInterval(colorInterval.current)
+    colorInterval.current = null
   }
   
-  const handleButtonPress = async () => {
-    if (gamePhase !== 'playing' || hasPressed || buttonColor >= 100) return
+  // 색상 변화 시작 (4초 동안 흰색에서 검정으로)
+  const startTime = Date.now()
+  let isExploded = false
+  
+  colorInterval.current = setInterval(() => {
+    if (isExploded || gamePhase !== 'playing') return
     
-    console.log('Button pressed!')
-    setHasPressed(true)
-    const pressTime = Date.now() - roundStartTime.current
+    const elapsed = Date.now() - startTime
+    const progress = Math.min(elapsed / 4000, 1) // 4초
+    const colorValue = progress * 100
     
-    const userId = localStorage.getItem('userId')
+    setButtonColor(colorValue)
     
-    if (room) {
-      const updatedParticipants = room.participants.map(p => 
-        p.id === userId 
-          ? { ...p, has_pressed: true, press_time: pressTime }
-          : p
-      )
+    // 4초 후 폭발
+    if (progress >= 1 && !isExploded) {
+      isExploded = true
+      console.log('4 seconds reached - EXPLOSION!')
+      handleExplosion()
       
-      try {
-        await supabase
-          .from('rooms')
-          .update({ participants: updatedParticipants })
-          .eq('id', roomId)
-        console.log('Button press recorded')
-      } catch (error) {
-        console.error('Failed to record button press:', error)
+      if (colorInterval.current) {
+        clearInterval(colorInterval.current)
+        colorInterval.current = null
+      }
+      
+      // 라운드 종료 처리 (호스트만)
+      const userId = localStorage.getItem('userId')
+      const isCurrentUserHost = room?.host_id === userId
+      
+      if (isCurrentUserHost) {
+        setTimeout(() => {
+          endRoundForAll()
+        }, 1500) // 폭발 효과를 보여준 후 종료
       }
     }
+  }, 50)
+}
+  
+  const handleButtonPress = async () => {
+  if (gamePhase !== 'playing' || hasPressed || buttonColor >= 100) return
+  
+  console.log('Button pressed!')
+  setHasPressed(true)
+  
+  // ✅ roundStartTime은 ref이므로 .current 사용
+  const pressTime = Date.now() - roundStartTime.current
+  
+  const userId = localStorage.getItem('userId')
+  
+  if (room) {
+    const updatedParticipants = room.participants.map(p => 
+      p.id === userId 
+        ? { ...p, has_pressed: true, press_time: pressTime }
+        : p
+    )
+    
+    try {
+      await supabase
+        .from('rooms')
+        .update({ participants: updatedParticipants })
+        .eq('id', roomId)
+      console.log('Button press recorded')
+    } catch (error) {
+      console.error('Failed to record button press:', error)
+    }
   }
+}
   
   const handleExplosion = () => {
     navigator.vibrate?.(200)
