@@ -497,10 +497,22 @@ const startRound = () => {
     }, 1500)
     
     setTimeout(() => {
-      const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
+      const userId = localStorage.getItem('userId')
+      const isHostFromStorage = localStorage.getItem('isHost') === 'true'
+      const isCurrentUserHost = isHostFromStorage || (newRoom.host_id === userId)
+      
+      console.log('endRound host check:', {
+        userId,
+        isHostFromStorage,
+        roomHostId: newRoom.host_id,
+        finalDecision: isCurrentUserHost
+      })
       
       if (isCurrentUserHost) {
+        console.log('Host confirmed, starting next round')
         startNextRound()
+      } else {
+        console.log('Not host, waiting for host to start next round')
       }
     }, 2000)
   } else {
@@ -559,38 +571,75 @@ const startRound = () => {
   
   const startNextRound = async () => {
   const userId = localStorage.getItem('userId')
-  const isCurrentUserHost = room?.host_id === userId
+  const isHostFromStorage = localStorage.getItem('isHost') === 'true'
+  
+  // ✅ 더 상세한 호스트 확인 로깅
+  console.log('startNextRound check:', {
+    userId,
+    isHostFromStorage,
+    roomHostId: room?.host_id,
+    currentRoomExists: !!room
+  })
+  
+  // ✅ 두 가지 방법으로 호스트 확인
+  const isCurrentUserHost = isHostFromStorage || (room?.host_id === userId)
   
   if (!isCurrentUserHost) {
-    console.log('Not host, cannot start next round')
+    console.log('Not host, cannot start next round - checking both methods failed')
     return
   }
   
   console.log('Starting next round...')
   setGamePhase('waiting')
   
-  // 참가자 상태 초기화
-  const resetParticipants = room!.participants.map(p => ({
-    ...p,
-    has_pressed: false,
-    press_time: null
-  }))
+  // ✅ 플래그 리셋 (다음 라운드를 위해)
+  roundStarted.current = false
+  countdownStarted.current = false
   
   try {
-    await supabase
+    // ✅ 현재 방 상태를 다시 가져와서 확인
+    const { data: currentRoom, error: fetchError } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('id', roomId)
+      .single()
+    
+    if (fetchError) {
+      console.error('Failed to fetch room for next round:', fetchError)
+      return
+    }
+    
+    // 참가자 상태 초기화 (이미 위에서 했지만 확실히)
+    const resetParticipants = currentRoom.participants.map((p: any) => ({
+      ...p,
+      has_pressed: false,
+      press_time: null
+    }))
+    
+    const newGameState = {
+      ...currentRoom.game_state,
+      round_end: false,
+      countdown_started: true,
+      countdown_start_time: Date.now(),
+      current_round: currentRound,
+      round_start_time: null // 새로운 라운드이므로 리셋
+    }
+    
+    console.log('Starting next round with game state:', newGameState)
+    
+    const { error } = await supabase
       .from('rooms')
       .update({ 
         participants: resetParticipants,
-        game_state: {
-          ...room!.game_state,
-          round_end: false,
-          countdown_started: true,
-          countdown_start_time: Date.now(),
-          current_round: currentRound
-        }
+        game_state: newGameState
       })
       .eq('id', roomId)
-    console.log('Next round setup sent')
+    
+    if (error) {
+      console.error('Failed to start next round:', error)
+    } else {
+      console.log('Next round setup sent successfully')
+    }
   } catch (error) {
     console.error('Failed to start next round:', error)
   }
