@@ -278,6 +278,7 @@ const handleRoomUpdate = (payload: any) => {
   
   // 이전 인터벌 정리
   if (colorInterval.current) {
+    console.log('Clearing previous interval')
     clearInterval(colorInterval.current)
     colorInterval.current = null
   }
@@ -286,12 +287,22 @@ const handleRoomUpdate = (payload: any) => {
   const startTime = Date.now()
   let isExploded = false
   
+  console.log('Starting color interval at:', startTime)
+  
   colorInterval.current = setInterval(() => {
-    if (isExploded || gamePhase !== 'playing') return
+    if (isExploded || gamePhase !== 'playing') {
+      console.log('Interval stopped:', { isExploded, gamePhase })
+      return
+    }
     
     const elapsed = Date.now() - startTime
     const progress = Math.min(elapsed / 4000, 1) // 4초
     const colorValue = progress * 100
+    
+    // ✅ 색상 변화 로그 추가
+    if (Math.floor(elapsed / 500) !== Math.floor((elapsed - 50) / 500)) {
+      console.log(`Color progress: ${elapsed}ms, ${progress.toFixed(2)}, color: ${colorValue.toFixed(1)}%`)
+    }
     
     setButtonColor(colorValue)
     
@@ -308,15 +319,18 @@ const handleRoomUpdate = (payload: any) => {
       
       // 라운드 종료 처리 (호스트만)
       const userId = localStorage.getItem('userId')
-      const isCurrentUserHost = room?.host_id === userId
+      const isCurrentUserHost = localStorage.getItem('isHost') === 'true' // ✅ localStorage 사용
       
       if (isCurrentUserHost) {
+        console.log('Host ending round after explosion')
         setTimeout(() => {
           endRoundForAll()
         }, 1500) // 폭발 효과를 보여준 후 종료
       }
     }
   }, 50)
+  
+  console.log('Color interval started:', colorInterval.current)
 }
   
   const handleButtonPress = async () => {
