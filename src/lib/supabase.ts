@@ -209,17 +209,8 @@ export async function updateGameState(roomId: string, gameState: Partial<GameSta
 }
 
 // 방 ID 생성 (6자리 영숫자 또는 4자리 숫자)
+// supabase.ts의 generateRoomId 함수 수정
 function generateRoomId(): string {
-  const useNumbers = Math.random() > 0.5
-  
-  if (useNumbers) {
-    return Math.floor(1000 + Math.random() * 9000).toString()
-  } else {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let roomId = ''
-    for (let i = 0; i < 6; i++) {
-      roomId += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return roomId
-  }
+  // ✅ 항상 4자리 숫자만 생성 (1000-9999)
+  return Math.floor(1000 + Math.random() * 9000).toString()
 }

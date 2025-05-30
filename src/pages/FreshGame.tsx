@@ -102,6 +102,7 @@ export default function FreshGame() {
 const roundStarted = useRef(false)
 
 // handleRoomUpdate 함수 수정
+// handleRoomUpdate 함수에서 모든 참가자 버튼 프레스 체크 개선
 const handleRoomUpdate = (payload: any) => {
   let newRoom: GameRoom | null = null
   
@@ -118,7 +119,7 @@ const handleRoomUpdate = (payload: any) => {
   
   const gameState = newRoom.game_state
   console.log('Game state update:', gameState)
-  console.log('Current gamePhase:', gamePhase) // ✅ 현재 상태 로깅
+  console.log('Current gamePhase:', gamePhase)
   
   // 카운트다운 시작 감지 (중복 방지)
   if (gameState.countdown_started && 
@@ -129,11 +130,11 @@ const handleRoomUpdate = (payload: any) => {
     startLocalCountdown()
   }
   
-  // ✅ 라운드 시작 감지 (더 엄격한 조건)
+  // 라운드 시작 감지 (더 엄격한 조건)
   if (gameState.round_start_time && 
       !roundStarted.current && 
-      gamePhase !== 'playing' &&  // ✅ 이미 playing이면 시작하지 않음
-      gamePhase !== 'countdown') { // ✅ 카운트다운 중에도 시작하지 않음
+      gamePhase !== 'playing' &&
+      gamePhase !== 'countdown') {
     
     console.log('NEW round start detected! Time:', gameState.round_start_time)
     console.log('Current gamePhase before start:', gamePhase)
@@ -147,12 +148,12 @@ const handleRoomUpdate = (payload: any) => {
     }
     
     startRound()
-    return // ✅ 라운드 시작 후 나머지 로직 건너뛰기
+    return
   }
   
-  // ✅ 이미 playing 상태에서는 추가 처리만
+  // ✅ playing 상태에서의 처리 개선
   if (gamePhase === 'playing') {
-    // 다른 참가자들의 버튼 프레스 상태 업데이트만
+    // 다른 참가자들의 버튼 프레스 상태 업데이트
     const pressedParticipants = newRoom.participants
       .filter(p => p.has_pressed)
       .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
@@ -160,23 +161,34 @@ const handleRoomUpdate = (payload: any) => {
     
     setPressedOrder(pressedParticipants)
     
-    // 모든 참가자가 버튼을 누른 경우 체크 (호스트만)
+    // ✅ 모든 참가자가 버튼을 누른 경우 즉시 체크 (호스트만)
     const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
     
     if (isCurrentUserHost && oldRoom) {
       const allParticipants = newRoom.participants.length
       const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
+      const oldPressedCount = oldRoom.participants.filter(p => p.has_pressed).length
       
-      console.log(`Pressed: ${pressedCount}/${allParticipants}`)
+      console.log(`Button press update: ${pressedCount}/${allParticipants} (was ${oldPressedCount})`)
       
-      if (pressedCount === allParticipants && pressedCount > 0) {
-        console.log('All participants pressed, ending round')
+      // ✅ 새로운 버튼 프레스가 있고, 모든 참가자가 눌렀을 때
+      if (pressedCount > oldPressedCount && pressedCount === allParticipants) {
+        console.log('🎯 All participants pressed! Ending round immediately')
+        
+        // ✅ 색상 인터벌 즉시 중단
+        if (colorInterval.current) {
+          clearInterval(colorInterval.current)
+          colorInterval.current = null
+          console.log('Color interval stopped due to all participants pressed')
+        }
+        
+        // 즉시 라운드 종료
         setTimeout(() => {
           endRoundForAll()
-        }, 500)
+        }, 100) // 아주 짧은 지연으로 UI 업데이트 반영
       }
     }
-    return // ✅ playing 상태에서는 여기서 종료
+    return
   }
   
   // 라운드 종료 처리
@@ -573,31 +585,29 @@ const startRound = () => {
   const userId = localStorage.getItem('userId')
   const isHostFromStorage = localStorage.getItem('isHost') === 'true'
   
-  // ✅ 더 상세한 호스트 확인 로깅
   console.log('startNextRound check:', {
     userId,
     isHostFromStorage,
+    currentRoundState: currentRound, // ✅ 현재 라운드 상태 로깅
     roomHostId: room?.host_id,
     currentRoomExists: !!room
   })
   
-  // ✅ 두 가지 방법으로 호스트 확인
   const isCurrentUserHost = isHostFromStorage || (room?.host_id === userId)
   
   if (!isCurrentUserHost) {
-    console.log('Not host, cannot start next round - checking both methods failed')
+    console.log('Not host, cannot start next round')
     return
   }
   
   console.log('Starting next round...')
   setGamePhase('waiting')
   
-  // ✅ 플래그 리셋 (다음 라운드를 위해)
+  // ✅ 플래그 리셋
   roundStarted.current = false
   countdownStarted.current = false
   
   try {
-    // ✅ 현재 방 상태를 다시 가져와서 확인
     const { data: currentRoom, error: fetchError } = await supabase
       .from('rooms')
       .select('*')
@@ -609,23 +619,25 @@ const startRound = () => {
       return
     }
     
-    // 참가자 상태 초기화 (이미 위에서 했지만 확실히)
     const resetParticipants = currentRoom.participants.map((p: any) => ({
       ...p,
       has_pressed: false,
       press_time: null
     }))
     
+    // ✅ currentRound 상태를 사용하여 올바른 라운드 번호 설정
+    const nextRoundNumber = currentRound
+    
     const newGameState = {
       ...currentRoom.game_state,
       round_end: false,
       countdown_started: true,
       countdown_start_time: Date.now(),
-      current_round: currentRound,
-      round_start_time: null // 새로운 라운드이므로 리셋
+      current_round: nextRoundNumber, // ✅ 올바른 라운드 번호 사용
+      round_start_time: null
     }
     
-    console.log('Starting next round with game state:', newGameState)
+    console.log('Starting round', nextRoundNumber, 'with game state:', newGameState)
     
     const { error } = await supabase
       .from('rooms')
