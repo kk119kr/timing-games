@@ -10,6 +10,8 @@ interface RoundResult {
   score: number
 }
 
+type GamePhase = 'waiting' | 'countdown' | 'playing' | 'round-end' | 'next-round' | 'final-results'
+
 export default function FreshGame() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
@@ -23,7 +25,7 @@ export default function FreshGame() {
   const [showResults, setShowResults] = useState(false)
   const [pressedOrder, setPressedOrder] = useState<string[]>([])
   const [roundEndMessage, setRoundEndMessage] = useState<string>('')
-  const [gamePhase, setGamePhase] = useState<'waiting' | 'countdown' | 'playing' | 'round-end' | 'next-round' | 'final-results'>('waiting')
+  const [gamePhase, setGamePhase] = useState<GamePhase>('waiting')
   const colorInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const roundStartTime = useRef<number>(0)
   
@@ -195,9 +197,11 @@ const handleRoomUpdate = (payload: any) => {
     return
   }
   
-  // 라운드 종료 처리
-  if (gameState.current_round && gameState.current_round > currentRound) {
-    endRound(newRoom)
+  // ✅ 라운드 종료 감지 - game_state.round_end 플래그 확인
+  if (gameState.round_end && gamePhase === 'playing') {
+    console.log('Round end detected from game state')
+    handleRoundEnd(newRoom)
+    return
   }
 }
   
@@ -486,62 +490,63 @@ const startRound = () => {
   }
 }
   
-  const endRound = async (newRoom: GameRoom) => {
-  console.log('Ending round', currentRound)
-  setGamePhase('round-end')
-  setRoundActive(false)
-  setRoundEndMessage(`ROUND ${currentRound} END`)
-  
-  // ✅ 다음 라운드를 위한 플래그 리셋
-  roundStarted.current = false
-  countdownStarted.current = false
-  
-  // 점수 계산
-  const results = calculateScores(newRoom.participants)
-  setRoundResults(prev => [...prev, results])
-  
-  setTimeout(() => {
-    setRoundEndMessage('')
-  }, 2000)
-  
-  // 다음 라운드 또는 게임 종료
-  if (currentRound < 3) {
-    setCurrentRound(prev => prev + 1)
-    setPressedOrder([])
-    setGamePhase('next-round')
+  // ✅ handleRoundEnd 함수 추가 (기존 endRound 함수를 대체)
+  const handleRoundEnd = async (newRoom: GameRoom) => {
+    console.log('Handling round end for round', currentRound)
+    setGamePhase('round-end')
+    setRoundActive(false)
+    setRoundEndMessage(`ROUND ${currentRound} END`)
     
-    // "Next Round" 메시지 표시
-    setRoundEndMessage('NEXT ROUND')
+    // ✅ 다음 라운드를 위한 플래그 리셋
+    roundStarted.current = false
+    countdownStarted.current = false
+    
+    // 점수 계산
+    const results = calculateScores(newRoom.participants)
+    setRoundResults(prev => [...prev, results])
+    
     setTimeout(() => {
       setRoundEndMessage('')
-    }, 1500)
+    }, 2000)
     
-    setTimeout(() => {
-      const userId = localStorage.getItem('userId')
-      const isHostFromStorage = localStorage.getItem('isHost') === 'true'
-      const isCurrentUserHost = isHostFromStorage || (newRoom.host_id === userId)
+    // 다음 라운드 또는 게임 종료
+    if (currentRound < 3) {
+      setCurrentRound(prev => prev + 1)
+      setPressedOrder([])
+      setGamePhase('next-round')
       
-      console.log('endRound host check:', {
-        userId,
-        isHostFromStorage,
-        roomHostId: newRoom.host_id,
-        finalDecision: isCurrentUserHost
-      })
+      // "Next Round" 메시지 표시
+      setRoundEndMessage('NEXT ROUND')
+      setTimeout(() => {
+        setRoundEndMessage('')
+      }, 1500)
       
-      if (isCurrentUserHost) {
-        console.log('Host confirmed, starting next round')
-        startNextRound()
-      } else {
-        console.log('Not host, waiting for host to start next round')
-      }
-    }, 2000)
-  } else {
-    setTimeout(() => {
-      setGamePhase('final-results')
-      setShowResults(true)
-    }, 2000)
+      setTimeout(() => {
+        const userId = localStorage.getItem('userId')
+        const isHostFromStorage = localStorage.getItem('isHost') === 'true'
+        const isCurrentUserHost = isHostFromStorage || (newRoom.host_id === userId)
+        
+        console.log('handleRoundEnd host check:', {
+          userId,
+          isHostFromStorage,
+          roomHostId: newRoom.host_id,
+          finalDecision: isCurrentUserHost
+        })
+        
+        if (isCurrentUserHost) {
+          console.log('Host confirmed, starting next round')
+          startNextRound()
+        } else {
+          console.log('Not host, waiting for host to start next round')
+        }
+      }, 2000)
+    } else {
+      setTimeout(() => {
+        setGamePhase('final-results')
+        setShowResults(true)
+      }, 2000)
+    }
   }
-}
   
   const calculateScores = (participants: any[]): RoundResult[] => {
     const pressed = participants
