@@ -318,7 +318,7 @@ const handleRoomUpdate = (payload: any) => {
       }
       
       // 라운드 종료 처리 (호스트만)
-      const userId = localStorage.getItem('userId')
+    
       const isCurrentUserHost = localStorage.getItem('isHost') === 'true' // ✅ localStorage 사용
       
       if (isCurrentUserHost) {
