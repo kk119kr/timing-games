@@ -502,7 +502,23 @@ const handleRoomUpdate = (payload: any) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 라운드 인디케이터 */}
+      {/* 🔍 디버그 정보 표시 - 왼쪽 상단에 고정 */}
+    <div className="fixed top-4 left-4 bg-black text-white p-3 rounded-lg text-sm z-50 font-mono">
+      <div className="text-yellow-300 font-bold mb-2">🎮 DEBUG INFO</div>
+      <div>Phase: <span className="text-green-300">{gamePhase}</span></div>
+      <div>Round: <span className="text-green-300">{currentRound}</span></div>
+      <div>Active: <span className="text-green-300">{roundActive ? 'YES' : 'NO'}</span></div>
+      <div>Countdown: <span className="text-green-300">{countdown || 'NULL'}</span></div>
+      <div>Color: <span className="text-green-300">{buttonColor.toFixed(0)}%</span></div>
+      <div>Pressed: <span className="text-green-300">{hasPressed ? 'YES' : 'NO'}</span></div>
+      <div>Host: <span className="text-green-300">{(() => {
+        const userId = localStorage.getItem('userId')
+        return room?.host_id === userId ? 'YES' : 'NO'
+      })()}</span></div>
+      <div>Start Time: <span className="text-green-300">{room?.game_state?.round_start_time ? 'SET' : 'NULL'}</span></div>
+    </div>
+
+    {/* 라운드 인디케이터 */}
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex space-x-2">
         {[1, 2, 3].map(round => (
           <div
