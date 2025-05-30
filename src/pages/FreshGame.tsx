@@ -394,8 +394,15 @@ const startRound = () => {
   const endRoundForAll = async () => {
   const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
   
-  if (!room || !isCurrentUserHost) {
-    console.log('Cannot end round:', { hasRoom: !!room, isHost: isCurrentUserHost })
+  console.log('Attempting to end round:', { hasRoom: !!room, isHost: isCurrentUserHost, roomId })
+  
+  if (!isCurrentUserHost) {
+    console.log('Not host, cannot end round')
+    return
+  }
+  
+  if (!roomId) {
+    console.log('No roomId, cannot end round')
     return
   }
   
@@ -410,27 +417,50 @@ const startRound = () => {
   }
   
   try {
-    // ✅ 참가자 상태도 함께 초기화
-    const resetParticipants = room.participants.map(p => ({
+    // ✅ room 상태에 의존하지 않고 직접 데이터베이스에서 가져오기
+    const { data: currentRoom, error: fetchError } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('id', roomId)
+      .single()
+    
+    if (fetchError) {
+      console.error('Failed to fetch current room:', fetchError)
+      return
+    }
+    
+    console.log('Fetched current room for ending round:', currentRoom)
+    
+    // ✅ 참가자 상태 초기화
+    const resetParticipants = currentRoom.participants.map((p: any) => ({
       ...p,
       has_pressed: false,
       press_time: null
     }))
     
-    await supabase
+    const newGameState = {
+      ...currentRoom.game_state,
+      current_round: currentRound + 1,
+      round_end: true,
+      round_start_time: null // ✅ 라운드 시작 시간 리셋
+    }
+    
+    console.log('Updating room with new game state:', newGameState)
+    
+    const { error } = await supabase
       .from('rooms')
       .update({ 
-        participants: resetParticipants, // ✅ 참가자 상태 리셋
-        game_state: {
-          ...room.game_state,
-          current_round: currentRound + 1,
-          round_end: true,
-          round_start_time: null // ✅ 라운드 시작 시간 리셋
-        }
+        participants: resetParticipants,
+        game_state: newGameState
       })
       .eq('id', roomId)
     
-    console.log('Round end broadcast sent')
+    if (error) {
+      console.error('Failed to update room:', error)
+    } else {
+      console.log('Round end broadcast sent successfully')
+    }
+    
   } catch (error) {
     console.error('Failed to end round:', error)
   }
