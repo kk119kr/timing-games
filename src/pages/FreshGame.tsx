@@ -68,19 +68,21 @@ export default function FreshGame() {
     const userId = localStorage.getItem('userId')
     console.log('User ID:', userId, 'Host ID:', data.host_id)
     
-    // ✅ data를 직접 사용하여 호스트 확인
-    if (data.host_id === userId) {
+    // ✅ 호스트 상태를 localStorage에 저장
+    const isCurrentUserHost = data.host_id === userId
+    localStorage.setItem('isHost', isCurrentUserHost.toString())
+    console.log('Host status saved:', isCurrentUserHost)
+    
+    if (isCurrentUserHost) {
       console.log('Host detected, starting countdown in 1 second...')
       
-      // 호스트는 1초 후 카운트다운 시작
       setTimeout(() => {
         console.log('Timer fired, calling startCountdown')
-        startCountdownAsHost(data) // ✅ room 데이터를 직접 전달
+        startCountdownAsHost(data)
       }, 1000)
     } else {
       console.log('Participant detected')
       
-      // 참가자는 이미 카운트다운이 시작되었는지 확인
       if (data.game_state?.countdown_started) {
         console.log('Countdown detected, starting local countdown...')
         startLocalCountdown()
@@ -211,14 +213,15 @@ const handleRoomUpdate = (payload: any) => {
   console.log('Starting local countdown...')
   setGamePhase('countdown')
   
-  // ✅ 호스트 확인을 미리 해두기 (상태 변경 전에)
+  // ✅ localStorage에서 호스트 확인 (더 안전함)
+  const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
   const userId = localStorage.getItem('userId')
-  const isCurrentUserHost = room?.host_id === userId
   
   console.log('Host check before countdown:', { 
     userId, 
-    hostId: room?.host_id, 
-    isHost: isCurrentUserHost 
+    isHostFromStorage: isCurrentUserHost,
+    roomHostId: room?.host_id,
+    roomExists: !!room
   })
   
   // 3, 2, 1 카운트다운
@@ -230,7 +233,7 @@ const handleRoomUpdate = (payload: any) => {
   setCountdown(null)
   console.log('Countdown finished')
   
-  // ✅ 미리 확인한 호스트 상태 사용
+  // ✅ localStorage 기반 호스트 확인 사용
   if (isCurrentUserHost) {
     console.log('Host starting round...')
     try {
@@ -249,7 +252,6 @@ const handleRoomUpdate = (payload: any) => {
       
       console.log('Round start broadcast sent successfully')
 
-      // ✅ 호스트도 즉시 라운드 시작
       console.log('Host starting local round immediately')
       roundStartTime.current = startTime
       startRound()
@@ -258,7 +260,6 @@ const handleRoomUpdate = (payload: any) => {
       console.error('Failed to start round:', error)
     }
   } else {
-    // 참가자는 라운드 시작 신호 대기
     console.log('Participant waiting for round start signal...')
     setGamePhase('waiting')
   }
