@@ -392,67 +392,94 @@ const startRound = () => {
   }
   
   const endRoundForAll = async () => {
-    const userId = localStorage.getItem('userId')
-    const isCurrentUserHost = room?.host_id === userId
-    
-    if (!room || !isCurrentUserHost) return
-    
-    console.log('Host ending round...')
-    setGamePhase('round-end')
-    setRoundActive(false)
-    
-    try {
-      await updateGameState(roomId!, {
-        current_round: currentRound + 1,
-        round_end: true
-      })
-      console.log('Round end broadcast sent')
-    } catch (error) {
-      console.error('Failed to end round:', error)
-    }
+  const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
+  
+  if (!room || !isCurrentUserHost) {
+    console.log('Cannot end round:', { hasRoom: !!room, isHost: isCurrentUserHost })
+    return
   }
   
+  console.log('Host ending round...')
+  setGamePhase('round-end')
+  setRoundActive(false)
+  
+  // ✅ 색상 인터벌 정리
+  if (colorInterval.current) {
+    clearInterval(colorInterval.current)
+    colorInterval.current = null
+  }
+  
+  try {
+    // ✅ 참가자 상태도 함께 초기화
+    const resetParticipants = room.participants.map(p => ({
+      ...p,
+      has_pressed: false,
+      press_time: null
+    }))
+    
+    await supabase
+      .from('rooms')
+      .update({ 
+        participants: resetParticipants, // ✅ 참가자 상태 리셋
+        game_state: {
+          ...room.game_state,
+          current_round: currentRound + 1,
+          round_end: true,
+          round_start_time: null // ✅ 라운드 시작 시간 리셋
+        }
+      })
+      .eq('id', roomId)
+    
+    console.log('Round end broadcast sent')
+  } catch (error) {
+    console.error('Failed to end round:', error)
+  }
+}
+  
   const endRound = async (newRoom: GameRoom) => {
-    console.log('Ending round', currentRound)
-    setGamePhase('round-end')
-    setRoundActive(false)
-    setRoundEndMessage(`ROUND ${currentRound} END`)
+  console.log('Ending round', currentRound)
+  setGamePhase('round-end')
+  setRoundActive(false)
+  setRoundEndMessage(`ROUND ${currentRound} END`)
+  
+  // ✅ 다음 라운드를 위한 플래그 리셋
+  roundStarted.current = false
+  countdownStarted.current = false
+  
+  // 점수 계산
+  const results = calculateScores(newRoom.participants)
+  setRoundResults(prev => [...prev, results])
+  
+  setTimeout(() => {
+    setRoundEndMessage('')
+  }, 2000)
+  
+  // 다음 라운드 또는 게임 종료
+  if (currentRound < 3) {
+    setCurrentRound(prev => prev + 1)
+    setPressedOrder([])
+    setGamePhase('next-round')
     
-    // 점수 계산
-    const results = calculateScores(newRoom.participants)
-    setRoundResults(prev => [...prev, results])
-    
+    // "Next Round" 메시지 표시
+    setRoundEndMessage('NEXT ROUND')
     setTimeout(() => {
       setRoundEndMessage('')
-    }, 2000)
+    }, 1500)
     
-    // 다음 라운드 또는 게임 종료
-    if (currentRound < 3) {
-      setCurrentRound(prev => prev + 1)
-      setPressedOrder([])
-      setGamePhase('next-round')
+    setTimeout(() => {
+      const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
       
-      // "Next Round" 메시지 표시
-      setRoundEndMessage('NEXT ROUND')
-      setTimeout(() => {
-        setRoundEndMessage('')
-      }, 1500)
-      
-      setTimeout(() => {
-        const userId = localStorage.getItem('userId')
-        const isCurrentUserHost = room?.host_id === userId
-        
-        if (isCurrentUserHost) {
-          startNextRound()
-        }
-      }, 2000)
-    } else {
-      setTimeout(() => {
-        setGamePhase('final-results')
-        setShowResults(true)
-      }, 2000)
-    }
+      if (isCurrentUserHost) {
+        startNextRound()
+      }
+    }, 2000)
+  } else {
+    setTimeout(() => {
+      setGamePhase('final-results')
+      setShowResults(true)
+    }, 2000)
   }
+}
   
   const calculateScores = (participants: any[]): RoundResult[] => {
     const pressed = participants
@@ -638,30 +665,31 @@ const startRound = () => {
           layoutId="game-button"
           animate={{ scale: hasPressed ? 0.9 : 1 }}
         >
-          <motion.button
-            className="w-64 h-64 rounded-full shadow-2xl relative overflow-hidden transition-colors duration-100"
-            style={{
-              backgroundColor: gamePhase === 'playing'
-                ? buttonColor >= 100 ? '#000000' : '#ffffff'
-                : '#e5e7eb'
-            }}
-            onClick={handleButtonPress}
-            disabled={gamePhase !== 'playing' || hasPressed}
-            whileHover={!hasPressed && gamePhase === 'playing' ? { scale: 1.02 } : {}}
-            whileTap={!hasPressed && gamePhase === 'playing' ? { scale: 0.98 } : {}}
-          >
-            {/* 폭발 효과 */}
-            <AnimatePresence>
-              {buttonColor >= 100 && !hasPressed && (
-                <motion.div
-                  className="absolute inset-0 bg-black"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: [1, 1.5, 2], opacity: [1, 0.5, 0] }}
-                  transition={{ duration: 0.5 }}
-                />
-              )}
-            </AnimatePresence>
-          </motion.button>
+          {/* 메인 버튼 - 색상 계산 방식 개선 */}
+<motion.button
+  className="w-64 h-64 rounded-full shadow-2xl relative overflow-hidden transition-colors duration-100"
+  style={{
+    backgroundColor: gamePhase === 'playing'
+      ? `rgb(${255 - Math.floor(buttonColor * 2.55)}, ${255 - Math.floor(buttonColor * 2.55)}, ${255 - Math.floor(buttonColor * 2.55)})` // ✅ RGB 값으로 더 정확한 색상 표시
+      : '#e5e7eb'
+  }}
+  onClick={handleButtonPress}
+  disabled={gamePhase !== 'playing' || hasPressed}
+  whileHover={!hasPressed && gamePhase === 'playing' ? { scale: 1.02 } : {}}
+  whileTap={!hasPressed && gamePhase === 'playing' ? { scale: 0.98 } : {}}
+>
+  {/* 폭발 효과 */}
+  <AnimatePresence>
+    {buttonColor >= 100 && !hasPressed && (
+      <motion.div
+        className="absolute inset-0 bg-black"
+        initial={{ scale: 0 }}
+        animate={{ scale: [1, 1.5, 2], opacity: [1, 0.5, 0] }}
+        transition={{ duration: 0.5 }}
+      />
+    )}
+  </AnimatePresence>
+</motion.button>
         </motion.div>
         
         {/* 누른 순서 표시 */}
