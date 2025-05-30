@@ -157,7 +157,7 @@ const handleRoomUpdate = (payload: any) => {
   }
   
   // ✅ playing 상태에서의 처리 개선
-  if (gamePhase === 'playing') {
+  if ((gamePhase as GamePhase) === 'playing') {
     // 다른 참가자들의 버튼 프레스 상태 업데이트
     const pressedParticipants = newRoom.participants
       .filter(p => p.has_pressed)
@@ -198,7 +198,7 @@ const handleRoomUpdate = (payload: any) => {
   }
   
   // ✅ 라운드 종료 감지 - game_state.round_end 플래그 확인
-  if (gameState.round_end && gamePhase === 'playing') {
+  if (gameState.round_end && (gamePhase as GamePhase) === 'playing') {
     console.log('Round end detected from game state')
     handleRoundEnd(newRoom)
     return
@@ -300,7 +300,7 @@ const startRound = () => {
   console.log('Starting round', currentRound, 'current gamePhase:', gamePhase)
   
   // ✅ 이미 playing 상태면 중복 실행 방지
-  if (gamePhase === 'playing') {
+  if ((gamePhase as GamePhase) === 'playing') {
     console.log('Round already playing, skipping...')
     return
   }
@@ -371,7 +371,7 @@ const startRound = () => {
 }
   
   const handleButtonPress = async () => {
-  if (gamePhase !== 'playing' || hasPressed || buttonColor >= 100) return
+  if ((gamePhase as GamePhase) !== 'playing' || hasPressed || buttonColor >= 100) return
   
   console.log('Button pressed!')
   setHasPressed(true)
@@ -778,7 +778,7 @@ const startRound = () => {
       : '#e5e7eb'
   }}
   onClick={handleButtonPress}
-  disabled={gamePhase !== 'playing' || hasPressed}
+  disabled={(gamePhase as GamePhase) !== 'playing' || hasPressed}
   whileHover={!hasPressed && gamePhase === 'playing' ? { scale: 1.02 } : {}}
   whileTap={!hasPressed && gamePhase === 'playing' ? { scale: 0.98 } : {}}
 >
@@ -853,7 +853,7 @@ const startRound = () => {
             {(() => {
               const totalParticipants = room ? room.participants.length : 0
               const notPressedCount = totalParticipants - pressedOrder.length
-              return notPressedCount > 0 && gamePhase === 'playing' ? (
+              return notPressedCount > 0 && (gamePhase as GamePhase) === 'playing' ? (
                 <motion.div 
                   className="text-xs text-gray-400 mt-1"
                   animate={{ opacity: [0.5, 1, 0.5] }}
