@@ -132,20 +132,19 @@ const handleRoomUpdate = (payload: any) => {
     console.log('Countdown detected, starting local countdown...')
     countdownStarted.current = true
     startLocalCountdown()
+    return // ✅ early return 추가
   }
   
   // 라운드 시작 감지 (더 엄격한 조건)
   if (gameState.round_start_time && 
       !roundStarted.current && 
-      gamePhase !== 'playing' &&
-      gamePhase !== 'countdown') {
+      gamePhase !== 'playing') {
     
     console.log('NEW round start detected! Time:', gameState.round_start_time)
     console.log('Current gamePhase before start:', gamePhase)
-    console.log('Setting roundStarted flag to true')
     
     roundStarted.current = true
-    allPressedHandled.current = false // ✅ 새 라운드 시작 시 리셋
+    allPressedHandled.current = false
     roundStartTime.current = gameState.round_start_time
     
     if (gameState.current_round) {
@@ -153,11 +152,11 @@ const handleRoomUpdate = (payload: any) => {
     }
     
     startRound()
-    return
+    return // ✅ early return 추가
   }
   
-  // ✅ playing 상태에서의 처리 개선
-  if ((gamePhase as GamePhase) === 'playing') {
+  // ✅ playing 상태에서의 처리 - gamePhase를 직접 문자열로 비교
+  if (gamePhase === 'playing') {
     // 다른 참가자들의 버튼 프레스 상태 업데이트
     const pressedParticipants = newRoom.participants
       .filter(p => p.has_pressed)
@@ -179,7 +178,7 @@ const handleRoomUpdate = (payload: any) => {
       // ✅ 새로운 버튼 프레스가 있고, 모든 참가자가 눌렀을 때
       if (pressedCount > oldPressedCount && pressedCount === allParticipants) {
         console.log('🎯 All participants pressed! Ending round immediately')
-        allPressedHandled.current = true // ✅ 중복 처리 방지
+        allPressedHandled.current = true
         
         // ✅ 색상 인터벌 즉시 중단
         if (colorInterval.current) {
@@ -191,17 +190,17 @@ const handleRoomUpdate = (payload: any) => {
         // 즉시 라운드 종료
         setTimeout(() => {
           endRoundForAll()
-        }, 100)
+        }, 500) // ✅ 지연 시간 단축
       }
     }
-    return
+    return // ✅ early return 추가
   }
   
-  // ✅ 라운드 종료 감지 - game_state.round_end 플래그 확인
-  if (gameState.round_end && (gamePhase as GamePhase) === 'playing') {
+  // ✅ 라운드 종료 감지 - 더 정확한 조건
+  if (gameState.round_end && !gameState.round_start_time) {
     console.log('Round end detected from game state')
     handleRoundEnd(newRoom)
-    return
+    return // ✅ early return 추가
   }
 }
   
@@ -492,14 +491,18 @@ const startRound = () => {
   
   // ✅ handleRoundEnd 함수 수정 (기존 endRound 함수를 대체)
 const handleRoundEnd = async (newRoom: GameRoom) => {
-  console.log('Handling round end for round', currentRound)
+  const gameState = newRoom.game_state
+  const endedRound = gameState.current_round ? gameState.current_round - 1 : currentRound
+  
+  console.log('Handling round end for round', endedRound)
   setGamePhase('round-end')
   setRoundActive(false)
-  setRoundEndMessage(`ROUND ${currentRound} END`)
+  setRoundEndMessage(`ROUND ${endedRound} END`)
   
   // ✅ 다음 라운드를 위한 플래그 리셋
   roundStarted.current = false
   countdownStarted.current = false
+  allPressedHandled.current = false
   
   // 점수 계산
   const results = calculateScores(newRoom.participants)
@@ -510,15 +513,14 @@ const handleRoundEnd = async (newRoom: GameRoom) => {
   }, 2000)
   
   // 다음 라운드 또는 게임 종료
-  if (currentRound < 3) {
-    // ✅ 다음 라운드 번호를 미리 계산
-    const nextRoundNumber = currentRound + 1
+  if (endedRound < 3) {
+    const nextRoundNumber = endedRound + 1
     setCurrentRound(nextRoundNumber)
     setPressedOrder([])
     setGamePhase('next-round')
     
     // "Next Round" 메시지 표시
-    setRoundEndMessage('NEXT ROUND')
+    setRoundEndMessage(`ROUND ${nextRoundNumber}`)
     setTimeout(() => {
       setRoundEndMessage('')
     }, 1500)
@@ -533,17 +535,18 @@ const handleRoundEnd = async (newRoom: GameRoom) => {
         isHostFromStorage,
         roomHostId: newRoom.host_id,
         finalDecision: isCurrentUserHost,
-        nextRoundNumber // ✅ 로그 추가
+        nextRoundNumber,
+        endedRound
       })
       
       if (isCurrentUserHost) {
         console.log('Host confirmed, starting round', nextRoundNumber)
-        // ✅ 계산된 nextRoundNumber를 직접 전달
         startNextRound(nextRoundNumber)
       } else {
         console.log('Not host, waiting for host to start next round')
+        setGamePhase('waiting') // ✅ 참가자는 대기 상태로
       }
-    }, 2000)
+    }, 2500) // ✅ 지연 시간 증가
   } else {
     setTimeout(() => {
       setGamePhase('final-results')
@@ -602,7 +605,6 @@ const handleRoundEnd = async (newRoom: GameRoom) => {
   const userId = localStorage.getItem('userId')
   const isHostFromStorage = localStorage.getItem('isHost') === 'true'
   
-  // ✅ 파라미터로 받은 roundNumber를 우선 사용, 없으면 currentRound 사용
   const nextRoundNumber = roundNumber || currentRound
   
   console.log('startNextRound check:', {
@@ -611,8 +613,7 @@ const handleRoundEnd = async (newRoom: GameRoom) => {
     passedRoundNumber: roundNumber,
     currentRoundState: currentRound,
     finalRoundNumber: nextRoundNumber,
-    roomHostId: room?.host_id,
-    currentRoomExists: !!room
+    roomHostId: room?.host_id
   })
   
   const isCurrentUserHost = isHostFromStorage || (room?.host_id === userId)
@@ -622,10 +623,10 @@ const handleRoundEnd = async (newRoom: GameRoom) => {
     return
   }
   
-  console.log('Starting next round...')
+  console.log('Starting next round:', nextRoundNumber)
   setGamePhase('waiting')
   
-  // ✅ 플래그 리셋
+  // ✅ 플래그 완전 리셋
   roundStarted.current = false
   countdownStarted.current = false
   allPressedHandled.current = false
@@ -648,12 +649,11 @@ const handleRoundEnd = async (newRoom: GameRoom) => {
       press_time: null
     }))
     
-    // ✅ round_end를 false로 설정하고 깔끔하게 상태 리셋
     const newGameState = {
-      round_end: false, // ✅ 중요: 라운드 종료 상태 해제
+      round_end: false,
       countdown_started: true,
       countdown_start_time: Date.now(),
-      current_round: nextRoundNumber, // ✅ 정확한 라운드 번호 사용
+      current_round: nextRoundNumber,
       round_start_time: null
     }
     
