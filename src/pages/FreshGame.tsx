@@ -191,31 +191,33 @@ export default function FreshGame() {
       
       setPressedOrder(pressedParticipants)
       
-      // 모든 참가자가 버튼을 누른 경우 즉시 체크
-      const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
+      // 모든 참가자가 버튼을 누른 경우 처리
+      const allParticipants = newRoom.participants.length
+      const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
       
-      if (isCurrentUserHost && oldRoom) {
-        const allParticipants = newRoom.participants.length
-        const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
-        const oldPressedCount = oldRoom.participants.filter(p => p.has_pressed).length
+      if (pressedCount === allParticipants && !allPressedHandled.current) {
+        console.log('🎯 All participants pressed detected!')
+        allPressedHandled.current = true
         
-        console.log(`Button press update: ${pressedCount}/${allParticipants} (was ${oldPressedCount})`)
+        // 즉시 색상 인터벌 중지 (호스트와 참가자 모두)
+        if (colorInterval.current) {
+          clearInterval(colorInterval.current)
+          colorInterval.current = null
+          console.log('Color interval stopped due to all participants pressed')
+        }
         
-        if (pressedCount > oldPressedCount && pressedCount === allParticipants) {
-          console.log('🎯 All participants pressed! Ending round immediately')
-          allPressedHandled.current = true
-          
-          // 즉시 색상 인터벌 중지
-          if (colorInterval.current) {
-            clearInterval(colorInterval.current)
-            colorInterval.current = null
-            console.log('Color interval stopped due to all participants pressed')
-          }
-          
-          // 짧은 딜레이 후 라운드 종료
+        // 호스트만 라운드 종료 처리
+        const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
+        if (isCurrentUserHost) {
+          console.log('Host ending round after all pressed')
           setTimeout(() => {
             endRoundForAll()
           }, 500)
+        } else {
+          console.log('Participant: waiting for round end from host')
+          // 참가자는 폭발 방지를 위해 게임 상태 변경
+          isExploded.current = true
+          setButtonColor(100)
         }
       }
       return
@@ -317,7 +319,7 @@ export default function FreshGame() {
   }
   
   const startRound = () => {
-    console.log('Starting round', currentRound, 'current gamePhase:', gamePhaseRef.current)
+          console.log('Starting round', roomRef.current?.game_state?.current_round || currentRound, 'current gamePhase:', gamePhaseRef.current)
     
     // 이미 playing 상태면 중복 실행 방지
     if (gamePhaseRef.current === 'playing') {
@@ -540,7 +542,13 @@ export default function FreshGame() {
     allPressedHandled.current = false
     isExploded.current = false
     
-    // 점수 계산
+    // 색상 인터벌 강제 정리 (혹시 남아있을 경우)
+    if (colorInterval.current) {
+      clearInterval(colorInterval.current)
+      colorInterval.current = null
+    }
+    
+    // 점수 계산 - 최신 참가자 정보 사용
     const results = calculateScores(newRoom.participants)
     setRoundResults(prev => [...prev, results])
     
@@ -593,11 +601,16 @@ export default function FreshGame() {
   }
   
   const calculateScores = (participants: any[]): RoundResult[] => {
-    const pressed = participants
-      .filter(p => p.has_pressed)
-      .sort((a, b) => a.press_time - b.press_time)
+    console.log('Calculating scores for participants:', participants)
     
-    const notPressed = participants.filter(p => !p.has_pressed)
+    const pressed = participants
+      .filter(p => p.has_pressed === true)
+      .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
+    
+    const notPressed = participants.filter(p => p.has_pressed !== true)
+    
+    console.log('Pressed participants:', pressed.length, pressed)
+    console.log('Not pressed participants:', notPressed.length, notPressed)
     
     const results: RoundResult[] = []
     const totalPressed = pressed.length
@@ -605,7 +618,10 @@ export default function FreshGame() {
     // 누른 사람들 점수 계산
     pressed.forEach((p, index) => {
       let score = 0
-      if (totalPressed % 2 === 0) {
+      if (totalPressed === 1) {
+        // 혼자만 눌렀을 때
+        score = 1
+      } else if (totalPressed % 2 === 0) {
         const middle = totalPressed / 2
         score = index < middle ? -(middle - index) : (index - middle + 1)
       } else {
@@ -619,15 +635,18 @@ export default function FreshGame() {
         }
       }
       
+      console.log(`Score for ${p.name}: ${score} (index: ${index}, press_time: ${p.press_time})`)
+      
       results.push({
         participantId: p.id,
-        pressTime: p.press_time,
+        pressTime: p.press_time || 0,
         score: score
       })
     })
     
     // 못 누른 사람들 -5점
     notPressed.forEach(p => {
+      console.log(`Score for ${p.name}: -5 (not pressed)`)
       results.push({
         participantId: p.id,
         pressTime: -1,
