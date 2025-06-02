@@ -15,7 +15,7 @@ type GamePhase = 'waiting' | 'countdown' | 'playing' | 'round-end' | 'next-round
 export default function FreshGame() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
-  const [room, setRoom] = useState<GameRoom | null>(null)
+  const [room, setRoom] = useState<GameRoom | null>(null) // UI 렌더링용
   const [currentRound, setCurrentRound] = useState(1)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [buttonColor, setButtonColor] = useState(0)
@@ -35,11 +35,18 @@ export default function FreshGame() {
   const roundStarted = useRef(false)
   const allPressedHandled = useRef(false)
   const isExploded = useRef(false)
+  const roomRef = useRef<GameRoom | null>(null) // Room ref 추가
   
   // Helper function to update gamePhase with ref
   const setGamePhaseWithRef = (newPhase: GamePhase) => {
     gamePhaseRef.current = newPhase
     setGamePhase(newPhase)
+  }
+  
+  // Room update with ref
+  const setRoomWithRef = (newRoom: GameRoom | null) => {
+    roomRef.current = newRoom
+    setRoom(newRoom)
   }
   
   // 메인 useEffect - 게임 초기화와 구독
@@ -86,7 +93,7 @@ export default function FreshGame() {
       }
       
       console.log('Game state:', data.game_state)
-      setRoom(data)
+      setRoomWithRef(data)
       
       const userId = localStorage.getItem('userId')
       console.log('User ID:', userId, 'Host ID:', data.host_id)
@@ -96,7 +103,12 @@ export default function FreshGame() {
       localStorage.setItem('isHost', isCurrentUserHost.toString())
       console.log('Host status saved:', isCurrentUserHost)
       
-      if (isCurrentUserHost) {
+      // 게임 상태 복원
+      if (data.game_state?.current_round) {
+        setCurrentRound(data.game_state.current_round)
+      }
+      
+      if (isCurrentUserHost && !data.game_state?.countdown_started && !data.game_state?.round_start_time) {
         console.log('Host detected, starting countdown in 1 second...')
         
         setTimeout(() => {
@@ -104,7 +116,7 @@ export default function FreshGame() {
           startCountdownAsHost(data)
         }, 1000)
       } else {
-        console.log('Participant detected')
+        console.log('Participant detected or game already in progress')
         
         if (data.game_state?.countdown_started) {
           console.log('Countdown detected, starting local countdown...')
@@ -128,8 +140,8 @@ export default function FreshGame() {
     
     if (!newRoom) return
     
-    const oldRoom = room
-    setRoom(newRoom)
+    const oldRoom = roomRef.current
+    setRoomWithRef(newRoom)
     
     const gameState = newRoom.game_state
     console.log('Game state update:', gameState)
@@ -170,7 +182,7 @@ export default function FreshGame() {
     }
     
     // playing 상태에서의 처리
-    if (currentGamePhase === 'playing' && !isExploded.current) {
+    if (currentGamePhase === 'playing' && !isExploded.current && !allPressedHandled.current) {
       // 다른 참가자들의 버튼 프레스 상태 업데이트
       const pressedParticipants = newRoom.participants
         .filter(p => p.has_pressed)
@@ -182,7 +194,7 @@ export default function FreshGame() {
       // 모든 참가자가 버튼을 누른 경우 즉시 체크
       const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
       
-      if (isCurrentUserHost && oldRoom && !allPressedHandled.current) {
+      if (isCurrentUserHost && oldRoom) {
         const allParticipants = newRoom.participants.length
         const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
         const oldPressedCount = oldRoom.participants.filter(p => p.has_pressed).length
@@ -219,7 +231,7 @@ export default function FreshGame() {
   
   const startCountdownAsHost = async (roomData?: GameRoom) => {
     const userId = localStorage.getItem('userId')
-    const currentRoom = roomData || room
+    const currentRoom = roomData || roomRef.current
     const isCurrentUserHost = currentRoom?.host_id === userId
     
     if (!isCurrentUserHost || !roomId) {
@@ -392,8 +404,8 @@ export default function FreshGame() {
     
     const userId = localStorage.getItem('userId')
     
-    if (room) {
-      const updatedParticipants = room.participants.map(p => 
+    if (roomRef.current) {
+      const updatedParticipants = roomRef.current.participants.map(p => 
         p.id === userId 
           ? { ...p, has_pressed: true, press_time: pressTime }
           : p
@@ -426,7 +438,7 @@ export default function FreshGame() {
     const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
     
     console.log('Attempting to end round:', { 
-      hasRoom: !!room, 
+      hasRoom: !!roomRef.current, 
       isHost: isCurrentUserHost, 
       roomId, 
       currentRound,
@@ -482,18 +494,17 @@ export default function FreshGame() {
       
       // 현재 라운드 번호 확인
       const currentRoundNumber = currentRoom.game_state?.current_round || currentRound
-      const nextRound = currentRoundNumber < 3 ? currentRoundNumber + 1 : currentRoundNumber
       
       const newGameState = {
         ...currentRoom.game_state,
-        current_round: nextRound,
+        current_round: currentRoundNumber, // 라운드 번호는 증가시키지 않음
         round_end: true,
         round_start_time: null,
         countdown_started: false
       }
       
       console.log('Updating room with new game state:', newGameState)
-      console.log('Current round:', currentRoundNumber, 'Next round:', nextRound)
+      console.log('Current round:', currentRoundNumber)
       
       const { error } = await supabase
         .from('rooms')
@@ -521,7 +532,7 @@ export default function FreshGame() {
     console.log('Handling round end for round', endedRound)
     setGamePhaseWithRef('round-end')
     setRoundActive(false)
-    setRoundEndMessage(`ROUND ${endedRound - 1} END`) // 이미 증가된 라운드 번호에서 1을 뺌
+    setRoundEndMessage(`ROUND ${endedRound} END`)
     
     // 플래그 리셋
     roundStarted.current = false
@@ -538,9 +549,8 @@ export default function FreshGame() {
     }, 2000)
     
     // 다음 라운드 또는 게임 종료
-    const actualEndedRound = endedRound - 1 // 실제 종료된 라운드
-    if (actualEndedRound < 3) {
-      const nextRoundNumber = actualEndedRound + 1
+    if (endedRound < 3) {
+      const nextRoundNumber = endedRound + 1
       setCurrentRound(nextRoundNumber)
       setPressedOrder([])
       setGamePhaseWithRef('next-round')
@@ -561,7 +571,7 @@ export default function FreshGame() {
           roomHostId: newRoom.host_id,
           finalDecision: isCurrentUserHost,
           nextRoundNumber,
-          actualEndedRound
+          endedRound
         })
         
         if (isCurrentUserHost) {
@@ -573,7 +583,8 @@ export default function FreshGame() {
         }
       }, 2500)
     } else {
-      // 게임 종료
+      // 게임 종료 - 3라운드가 끝났을 때
+      console.log('Game finished after round 3')
       setTimeout(() => {
         setGamePhaseWithRef('final-results')
         setShowResults(true)
@@ -627,29 +638,25 @@ export default function FreshGame() {
     return results
   }
   
-  const startNextRound = async (roundNumber?: number) => {
+  const startNextRound = async (roundNumber: number) => {
     const userId = localStorage.getItem('userId')
     const isHostFromStorage = localStorage.getItem('isHost') === 'true'
-    
-    const nextRoundNumber = roundNumber || currentRound
     
     console.log('startNextRound check:', {
       userId,
       isHostFromStorage,
-      passedRoundNumber: roundNumber,
-      currentRoundState: currentRound,
-      finalRoundNumber: nextRoundNumber,
-      roomHostId: room?.host_id
+      roundNumber,
+      roomHostId: roomRef.current?.host_id
     })
     
-    const isCurrentUserHost = isHostFromStorage || (room?.host_id === userId)
+    const isCurrentUserHost = isHostFromStorage || (roomRef.current?.host_id === userId)
     
     if (!isCurrentUserHost) {
       console.log('Not host, cannot start next round')
       return
     }
     
-    console.log('Starting next round:', nextRoundNumber)
+    console.log('Starting next round:', roundNumber)
     setGamePhaseWithRef('waiting')
     
     // 플래그 완전 리셋
@@ -680,11 +687,11 @@ export default function FreshGame() {
         round_end: false,
         countdown_started: true,
         countdown_start_time: Date.now(),
-        current_round: nextRoundNumber,
+        current_round: roundNumber,
         round_start_time: null
       }
       
-      console.log('Starting round', nextRoundNumber, 'with game state:', newGameState)
+      console.log('Starting round', roundNumber, 'with game state:', newGameState)
       
       const { error } = await supabase
         .from('rooms')
@@ -746,7 +753,8 @@ export default function FreshGame() {
             const userId = localStorage.getItem('userId')
             return room?.host_id === userId ? 'YES' : 'NO'
           })()}</span></div>
-          <div>Start Time: <span className="text-green-300">{room?.game_state?.round_start_time ? 'SET' : 'NULL'}</span></div>
+          <div>Participants: <span className="text-green-300">{room?.participants.length || 0}</span></div>
+          <div>Pressed Count: <span className="text-green-300">{room?.participants.filter(p => p.has_pressed).length || 0}</span></div>
         </div>
       )}
 
