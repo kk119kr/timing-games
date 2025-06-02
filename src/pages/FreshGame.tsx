@@ -490,63 +490,67 @@ const startRound = () => {
   }
 }
   
-  // ✅ handleRoundEnd 함수 추가 (기존 endRound 함수를 대체)
-  const handleRoundEnd = async (newRoom: GameRoom) => {
-    console.log('Handling round end for round', currentRound)
-    setGamePhase('round-end')
-    setRoundActive(false)
-    setRoundEndMessage(`ROUND ${currentRound} END`)
+  // ✅ handleRoundEnd 함수 수정 (기존 endRound 함수를 대체)
+const handleRoundEnd = async (newRoom: GameRoom) => {
+  console.log('Handling round end for round', currentRound)
+  setGamePhase('round-end')
+  setRoundActive(false)
+  setRoundEndMessage(`ROUND ${currentRound} END`)
+  
+  // ✅ 다음 라운드를 위한 플래그 리셋
+  roundStarted.current = false
+  countdownStarted.current = false
+  
+  // 점수 계산
+  const results = calculateScores(newRoom.participants)
+  setRoundResults(prev => [...prev, results])
+  
+  setTimeout(() => {
+    setRoundEndMessage('')
+  }, 2000)
+  
+  // 다음 라운드 또는 게임 종료
+  if (currentRound < 3) {
+    // ✅ 다음 라운드 번호를 미리 계산
+    const nextRoundNumber = currentRound + 1
+    setCurrentRound(nextRoundNumber)
+    setPressedOrder([])
+    setGamePhase('next-round')
     
-    // ✅ 다음 라운드를 위한 플래그 리셋
-    roundStarted.current = false
-    countdownStarted.current = false
-    
-    // 점수 계산
-    const results = calculateScores(newRoom.participants)
-    setRoundResults(prev => [...prev, results])
-    
+    // "Next Round" 메시지 표시
+    setRoundEndMessage('NEXT ROUND')
     setTimeout(() => {
       setRoundEndMessage('')
-    }, 2000)
+    }, 1500)
     
-    // 다음 라운드 또는 게임 종료
-    if (currentRound < 3) {
-      setCurrentRound(prev => prev + 1)
-      setPressedOrder([])
-      setGamePhase('next-round')
+    setTimeout(() => {
+      const userId = localStorage.getItem('userId')
+      const isHostFromStorage = localStorage.getItem('isHost') === 'true'
+      const isCurrentUserHost = isHostFromStorage || (newRoom.host_id === userId)
       
-      // "Next Round" 메시지 표시
-      setRoundEndMessage('NEXT ROUND')
-      setTimeout(() => {
-        setRoundEndMessage('')
-      }, 1500)
+      console.log('handleRoundEnd host check:', {
+        userId,
+        isHostFromStorage,
+        roomHostId: newRoom.host_id,
+        finalDecision: isCurrentUserHost,
+        nextRoundNumber // ✅ 로그 추가
+      })
       
-      setTimeout(() => {
-        const userId = localStorage.getItem('userId')
-        const isHostFromStorage = localStorage.getItem('isHost') === 'true'
-        const isCurrentUserHost = isHostFromStorage || (newRoom.host_id === userId)
-        
-        console.log('handleRoundEnd host check:', {
-          userId,
-          isHostFromStorage,
-          roomHostId: newRoom.host_id,
-          finalDecision: isCurrentUserHost
-        })
-        
-        if (isCurrentUserHost) {
-          console.log('Host confirmed, starting next round')
-          startNextRound()
-        } else {
-          console.log('Not host, waiting for host to start next round')
-        }
-      }, 2000)
-    } else {
-      setTimeout(() => {
-        setGamePhase('final-results')
-        setShowResults(true)
-      }, 2000)
-    }
+      if (isCurrentUserHost) {
+        console.log('Host confirmed, starting round', nextRoundNumber)
+        // ✅ 계산된 nextRoundNumber를 직접 전달
+        startNextRound(nextRoundNumber)
+      } else {
+        console.log('Not host, waiting for host to start next round')
+      }
+    }, 2000)
+  } else {
+    setTimeout(() => {
+      setGamePhase('final-results')
+      setShowResults(true)
+    }, 2000)
   }
+}
   
   const calculateScores = (participants: any[]): RoundResult[] => {
     const pressed = participants
@@ -594,14 +598,19 @@ const startRound = () => {
     return results
   }
   
-  const startNextRound = async () => {
+  const startNextRound = async (roundNumber?: number) => {
   const userId = localStorage.getItem('userId')
   const isHostFromStorage = localStorage.getItem('isHost') === 'true'
+  
+  // ✅ 파라미터로 받은 roundNumber를 우선 사용, 없으면 currentRound 사용
+  const nextRoundNumber = roundNumber || currentRound
   
   console.log('startNextRound check:', {
     userId,
     isHostFromStorage,
+    passedRoundNumber: roundNumber,
     currentRoundState: currentRound,
+    finalRoundNumber: nextRoundNumber,
     roomHostId: room?.host_id,
     currentRoomExists: !!room
   })
@@ -619,7 +628,7 @@ const startRound = () => {
   // ✅ 플래그 리셋
   roundStarted.current = false
   countdownStarted.current = false
-  allPressedHandled.current = false // ✅ 추가 리셋
+  allPressedHandled.current = false
   
   try {
     const { data: currentRoom, error: fetchError } = await supabase
@@ -639,14 +648,12 @@ const startRound = () => {
       press_time: null
     }))
     
-    const nextRoundNumber = currentRound
-    
     // ✅ round_end를 false로 설정하고 깔끔하게 상태 리셋
     const newGameState = {
       round_end: false, // ✅ 중요: 라운드 종료 상태 해제
       countdown_started: true,
       countdown_start_time: Date.now(),
-      current_round: nextRoundNumber,
+      current_round: nextRoundNumber, // ✅ 정확한 라운드 번호 사용
       round_start_time: null
     }
     
