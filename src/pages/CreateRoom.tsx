@@ -18,10 +18,17 @@ export default function CreateRoom() {
   
   const createGameRoom = async () => {
     try {
+      // gameType 타입 가드 추가
+      if (!gameType || (gameType !== 'chill' && gameType !== 'fresh')) {
+        console.error('Invalid game type:', gameType)
+        navigate('/')
+        return
+      }
+
       const userId = localStorage.getItem('userId') || `user_${Date.now()}`
       localStorage.setItem('userId', userId)
       
-      const room = await createRoom(gameType as 'chill' | 'fresh', userId)
+      const room = await createRoom(gameType, userId)
       setRoomId(room.id)
       
       // QR 코드 생성 - 미니멀 스타일
@@ -44,6 +51,7 @@ export default function CreateRoom() {
     } catch (error) {
       console.error('방 생성 실패:', error)
       setLoading(false)
+      navigate('/') // 에러 시 홈으로 이동
     }
   }
   
@@ -51,7 +59,7 @@ export default function CreateRoom() {
     navigate(`/room/${roomId}`)
   }
   
-  const isGameType = (type: string): type is 'chill' | 'fresh' => {
+  const isGameType = (type: string | undefined): type is 'chill' | 'fresh' => {
     return type === 'chill' || type === 'fresh'
   }
   
@@ -89,7 +97,7 @@ export default function CreateRoom() {
           }}
         >
           <span className="text-xs font-light tracking-[0.3em] uppercase">
-            {gameType}
+            {gameType || 'GAME'}
           </span>
         </motion.div>
       </motion.div>

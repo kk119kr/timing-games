@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion'
+import { motion, useMotionValue, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 
 export default function Home() {
@@ -14,14 +14,6 @@ export default function Home() {
   
   // 슬라이더 위치에 따른 현재 게임 타입 - 더 민감하게 조정
   const currentGame = y.get() < -60 ? 'fresh' : y.get() > 60 ? 'chill' : null
-  
-  // 상하 반전 효과를 위한 transform - 더 드라마틱하게
-  const freshMorphProgress = useTransform(y, [-150, -60, 0], [1, 1, 0])
-  const chillMorphProgress = useTransform(y, [0, 60, 150], [0, 1, 1])
-  
-  // 배경 모핑 효과 - 즉각적인 반응
-  const freshBgOpacity = useTransform(y, [-150, -60], [1, 1])
-  const chillBgOpacity = useTransform(y, [60, 150], [1, 1])
   
   const handleDragEnd = (_: any, info: any) => {
     const threshold = 100
