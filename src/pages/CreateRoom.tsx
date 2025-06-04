@@ -28,7 +28,7 @@ export default function CreateRoom() {
       
       setRoomId(room.id)
       
-      // QR 코드 생성 - 더 높은 해상도와 명확한 설정
+      // QR 코드 생성
       const roomUrl = `${window.location.origin}/room/${room.id}`
       console.log('Room URL:', roomUrl)
       
@@ -45,10 +45,10 @@ export default function CreateRoom() {
       setQrCodeUrl(qrUrl)
       setLoading(false)
       
-      // QR 코드 모핑 애니메이션 시작
+      // QR 코드 애니메이션 시작
       setTimeout(() => {
         setShowQR(true)
-      }, 800)
+      }, 500)
       
     } catch (error) {
       console.error('방 생성 실패:', error)
@@ -60,68 +60,57 @@ export default function CreateRoom() {
     navigate(`/room/${roomId}`)
   }
   
-  const gameColor = gameType === 'fresh' ? '#ff4444' : '#ffcc00'
-  const textColor = gameType === 'fresh' ? '#ffffff' : '#000000'
-  
   return (
     <motion.div 
-      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
-      style={{ backgroundColor: gameType === 'fresh' ? '#000000' : '#ffffff' }}
+      className="min-h-screen flex flex-col items-center justify-center bg-white p-6 relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 게임 타입 타이포그래피 */}
-      <motion.div
-        className="absolute top-12 md:top-16 left-1/2 transform -translate-x-1/2"
-        initial={{ y: -30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
+      {/* 뒤로가기 화살표 */}
+      <motion.button
+        onClick={() => navigate('/')}
+        className="absolute top-8 left-8 text-2xl text-black hover:text-gray-600 transition-colors"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        whileTap={{ scale: 0.9 }}
       >
-        <h1 
-          className="text-6xl md:text-8xl font-black tracking-[0.2em] text-center uppercase"
-          style={{ color: textColor }}
-        >
-          {gameType}
-        </h1>
-      </motion.div>
+        ←
+      </motion.button>
       
       {/* 중앙 QR 코드 영역 */}
       <motion.div
         className="relative flex flex-col items-center"
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+        transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
       >
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div
               key="loading"
-              layoutId="game-selector"
-              className="w-48 h-48 md:w-56 md:h-56 flex items-center justify-center rounded-2xl"
-              style={{ backgroundColor: gameColor }}
-              initial={{ borderRadius: '50%' }}
-              animate={{ 
-                borderRadius: ['50%', '25%', '1rem'],
-                rotate: [0, 180, 360]
-              }}
+              className="w-48 h-48 md:w-56 md:h-56 flex items-center justify-center rounded-2xl bg-gray-100 border-2 border-gray-200"
+              initial={{ rotate: 0 }}
+              animate={{ rotate: 360 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+              transition={{ 
+                duration: 2, 
+                repeat: Infinity, 
+                ease: "linear" 
+              }}
             >
-              {/* 로딩 인디케이터 */}
               <motion.div
-                className="relative"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              >
-                <div className="w-2 h-16 bg-white rounded-full opacity-80" />
-                <motion.div
-                  className="absolute w-6 h-6 bg-white rounded-full left-1/2 transform -translate-x-1/2"
-                  animate={{ y: [-30, 30, -30] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                  style={{ top: '50%', marginTop: '-12px' }}
-                />
-              </motion.div>
+                className="w-6 h-6 bg-gray-400 rounded-full"
+                animate={{ 
+                  scale: [1, 1.5, 1],
+                  opacity: [0.5, 1, 0.5]
+                }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
             </motion.div>
           ) : (
             <motion.div
@@ -132,31 +121,23 @@ export default function CreateRoom() {
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.5, type: "spring" }}
             >
-              {/* QR 코드 모핑 효과 */}
+              {/* QR 코드 */}
               <motion.div
-                layoutId="game-selector"
-                className="relative mb-8 bg-white rounded-2xl p-4 shadow-2xl"
+                className="relative mb-8 bg-white rounded-2xl p-4 shadow-lg border-2 border-gray-200"
                 animate={showQR ? {
-                  borderRadius: ['50%', '25%', '1rem'],
-                  width: [60, 160, 240],
-                  height: [60, 160, 240],
-                  padding: [24, 16, 16]
+                  scale: [0.8, 1.05, 1],
                 } : {}}
                 transition={{ 
-                  duration: 1.5, 
+                  duration: 0.8, 
                   ease: [0.23, 1, 0.320, 1],
                   delay: 0.2
                 }}
                 style={{
-                  boxShadow: `0 25px 50px -12px ${gameColor}40`
+                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)'
                 }}
               >
                 <motion.div
-                  className="w-full h-full flex items-center justify-center overflow-hidden rounded-xl"
-                  animate={{
-                    borderRadius: showQR ? '0.75rem' : '50%'
-                  }}
-                  transition={{ duration: 1.2, ease: [0.23, 1, 0.320, 1] }}
+                  className="w-48 h-48 md:w-56 md:h-56 flex items-center justify-center overflow-hidden rounded-xl"
                 >
                   <AnimatePresence>
                     {showQR && qrCodeUrl ? (
@@ -166,15 +147,14 @@ export default function CreateRoom() {
                         className="w-full h-full object-contain"
                         initial={{ opacity: 0, scale: 0.5 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 1, duration: 0.6 }}
+                        transition={{ delay: 0.5, duration: 0.6 }}
                       />
                     ) : (
                       <motion.div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: gameColor }}
+                        className="w-4 h-4 bg-gray-400 rounded-full"
                         animate={{ 
                           scale: [1, 1.2, 1],
-                          opacity: [0.8, 1, 0.8]
+                          opacity: [0.6, 1, 0.6]
                         }}
                         transition={{ 
                           duration: 2, 
@@ -187,31 +167,29 @@ export default function CreateRoom() {
                 </motion.div>
               </motion.div>
               
-              {/* 방 ID 타이포그래피 */}
+              {/* 방 ID */}
               <motion.div
                 className="text-center mb-8"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.8 }}
+                transition={{ delay: 1 }}
               >
                 <motion.p 
-                  className="text-xs md:text-sm font-bold tracking-[0.3em] mb-2"
-                  style={{ color: `${textColor}80` }}
+                  className="text-sm font-bold tracking-[0.3em] mb-3 text-gray-500"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 1.9 }}
+                  transition={{ delay: 1.1 }}
                 >
                   ROOM
                 </motion.p>
                 <motion.p 
-                  className="text-4xl md:text-5xl font-black tracking-[0.4em]"
+                  className="text-5xl md:text-6xl font-black tracking-[0.4em] text-black"
                   style={{ 
-                    color: textColor,
-                    textShadow: gameType === 'fresh' ? '0 0 20px rgba(255,255,255,0.3)' : 'none'
+                    fontVariantNumeric: 'tabular-nums'
                   }}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 2.1 }}
+                  transition={{ delay: 1.3 }}
                 >
                   {roomId}
                 </motion.p>
@@ -225,11 +203,10 @@ export default function CreateRoom() {
       <div className="absolute bottom-12 md:bottom-16 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-6">
         {/* 스캔 안내 */}
         <motion.p
-          className="text-xs md:text-sm font-semibold tracking-[0.2em] text-center"
-          style={{ color: `${textColor}80` }}
+          className="text-sm font-semibold tracking-[0.2em] text-center text-gray-500"
           initial={{ opacity: 0 }}
           animate={{ opacity: showQR ? 1 : 0 }}
-          transition={{ delay: 2.3 }}
+          transition={{ delay: 1.5 }}
         >
           SCAN TO JOIN
         </motion.p>
@@ -238,23 +215,13 @@ export default function CreateRoom() {
         {roomId && (
           <motion.button
             onClick={handleGoToRoom}
-            className="text-sm md:text-base font-bold tracking-[0.15em] px-6 py-3 rounded-xl border-2 transition-all duration-300"
+            className="text-base font-bold tracking-[0.15em] px-8 py-4 rounded-xl border-2 border-black text-black bg-transparent hover:bg-black hover:text-white transition-all duration-300"
             style={{
-              color: textColor,
-              borderColor: gameColor,
-              backgroundColor: 'transparent'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = gameColor
-              e.currentTarget.style.color = gameType === 'fresh' ? '#000000' : '#ffffff'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent'
-              e.currentTarget.style.color = textColor
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)'
             }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 2.5 }}
+            transition={{ delay: 1.7 }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -262,19 +229,6 @@ export default function CreateRoom() {
           </motion.button>
         )}
       </div>
-      
-      {/* 홈 버튼 */}
-      <motion.button
-        onClick={() => navigate('/')}
-        className="absolute top-6 right-6 md:top-8 md:right-8 text-sm font-semibold tracking-[0.15em] opacity-70 hover:opacity-100 transition-opacity"
-        style={{ color: textColor }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.7 }}
-        transition={{ delay: 0.5 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        HOME
-      </motion.button>
     </motion.div>
   )
 }
