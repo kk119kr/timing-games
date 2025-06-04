@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 
 export default function Home() {
   const navigate = useNavigate()
-  const [selectedGame, setSelectedGame] = useState<'chill' | 'fresh' | null>(null)
   const [showJoinInput, setShowJoinInput] = useState(false)
   const [roomId, setRoomId] = useState('')
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -24,7 +23,6 @@ export default function Home() {
     
     if (Math.abs(info.offset.y) > threshold) {
       const game = info.offset.y < 0 ? 'fresh' : 'chill'
-      setSelectedGame(game)
       setIsTransitioning(true)
       
       // 부드러운 전환 효과

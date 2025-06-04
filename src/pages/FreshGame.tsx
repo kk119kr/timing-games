@@ -20,7 +20,6 @@ export default function FreshGame() {
   const [countdown, setCountdown] = useState<number | null>(null)
   const [buttonColor, setButtonColor] = useState(0)
   const [hasPressed, setHasPressed] = useState(false)
-  const [roundActive, setRoundActive] = useState(false)
   const [roundResults, setRoundResults] = useState<RoundResult[][]>([])
   const [showResults, setShowResults] = useState(false)
   const [pressedOrder, setPressedOrder] = useState<string[]>([])
@@ -243,7 +242,6 @@ export default function FreshGame() {
     if (gamePhaseRef.current === 'playing') return
     
     setGamePhaseWithRef('playing')
-    setRoundActive(true)
     setHasPressed(false)
     setButtonColor(0)
     setPressedOrder([])
@@ -317,7 +315,6 @@ export default function FreshGame() {
     if (gamePhaseRef.current === 'round-end' || gamePhaseRef.current === 'next-round') return
     
     setGamePhaseWithRef('round-end')
-    setRoundActive(false)
     clearColorInterval()
     
     try {
@@ -361,7 +358,6 @@ export default function FreshGame() {
     const endedRound = gameState.current_round || currentRound
     
     setGamePhaseWithRef('round-end')
-    setRoundActive(false)
     setRoundEndMessage(`ROUND ${endedRound}`)
     
     resetGameFlags()
