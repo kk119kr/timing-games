@@ -37,7 +37,7 @@ export default function Home() {
   
   return (
     <motion.div 
-      className="min-h-screen relative overflow-hidden bg-white select-none"
+      className="h-screen w-screen relative overflow-hidden bg-white select-none"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -298,7 +298,7 @@ export default function Home() {
       
       {/* 방 참가 인터페이스 - 극도로 미니멀 */}
       <motion.div
-        className="absolute top-8 right-8 z-30"
+        className="absolute top-4 right-4 z-30"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
