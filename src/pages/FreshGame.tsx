@@ -506,7 +506,7 @@ export default function FreshGame() {
   
   return (
     <motion.div 
-      className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6 relative overflow-hidden"
+      className="min-h-screen flex flex-col items-center justify-center bg-black p-6 relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -514,25 +514,26 @@ export default function FreshGame() {
       {/* 상단 게임 정보 */}
       <motion.div
         className="absolute top-8 md:top-12 left-1/2 transform -translate-x-1/2 text-center"
-        initial={{ y: -20, opacity: 0 }}
+        initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
       >
-        <h1 className="text-2xl md:text-3xl font-thin tracking-[0.3em] text-gray-800 mb-2">
+        <h1 className="text-4xl md:text-5xl font-black tracking-[0.4em] text-white mb-4">
           FRESH
         </h1>
         
         {/* 라운드 인디케이터 */}
-        <div className="flex space-x-2 justify-center">
+        <div className="flex space-x-3 justify-center">
           {[1, 2, 3].map((round: number) => (
             <motion.div
               key={round}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                round < currentRound ? 'bg-gray-800' :
-                round === currentRound ? 'bg-black' :
-                'bg-gray-300'
+              className={`w-3 h-3 md:w-4 md:h-4 rounded-full border-2 transition-all ${
+                round < currentRound ? 'bg-red-500 border-red-500' :
+                round === currentRound ? 'bg-white border-white' :
+                'bg-transparent border-gray-600'
               }`}
               animate={{
-                scale: round === currentRound ? 1.2 : 1
+                scale: round === currentRound ? 1.3 : 1,
+                boxShadow: round === currentRound ? '0 0 15px #ffffff60' : 'none'
               }}
             />
           ))}
@@ -544,15 +545,22 @@ export default function FreshGame() {
         {countdown && (
           <motion.div
             className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            exit={{ opacity: 0, scale: 0.5 }}
             key="countdown"
           >
             <motion.h2
-              className="text-7xl md:text-8xl font-thin text-black"
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 0.5 }}
+              className="text-8xl md:text-9xl font-black text-white"
+              animate={{ 
+                scale: [1, 1.2, 1],
+                textShadow: [
+                  '0 0 20px #ffffff40',
+                  '0 0 40px #ffffff80',
+                  '0 0 20px #ffffff40'
+                ]
+              }}
+              transition={{ duration: 0.6 }}
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
               {countdown}
@@ -563,49 +571,92 @@ export default function FreshGame() {
         {roundEndMessage && (
           <motion.div
             className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            exit={{ opacity: 0, y: -30 }}
             key="roundEnd"
           >
-            <h2 className="text-2xl md:text-3xl font-thin tracking-[0.2em] text-center text-black">
+            <motion.h2 
+              className="text-3xl md:text-4xl font-black tracking-[0.3em] text-center text-red-500"
+              style={{ 
+                textShadow: '0 0 30px #ff444480',
+                filter: 'drop-shadow(0 0 20px #ff4444)'
+              }}
+              animate={{
+                scale: [1, 1.1, 1],
+                opacity: [1, 0.8, 1]
+              }}
+              transition={{ duration: 0.8, repeat: Infinity }}
+            >
               {roundEndMessage}
-            </h2>
+            </motion.h2>
           </motion.div>
         )}
       </AnimatePresence>
       
       {/* 메인 인터랙션 영역 */}
-      <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+      <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">
         {/* 메인 버튼 */}
         <motion.div
-          animate={{ scale: hasPressed ? 0.95 : 1 }}
-          transition={{ type: "spring", stiffness: 300 }}
+          animate={{ scale: hasPressed ? 0.9 : 1 }}
+          transition={{ type: "spring", stiffness: 400 }}
         >
           <motion.button
-            className="w-40 h-40 md:w-48 md:h-48 rounded-full relative overflow-hidden transition-all duration-100"
+            className="w-48 h-48 md:w-56 md:h-56 rounded-full relative overflow-hidden transition-all duration-75 border-4"
             style={{
               backgroundColor: gamePhase === 'playing'
-                ? `hsl(0, ${buttonColor}%, ${100 - buttonColor * 0.3}%)`
-                : '#e5e7eb',
-              boxShadow: gamePhase === 'playing' && buttonColor > 80
-                ? `0 0 60px hsla(0, ${buttonColor}%, 50%, 0.6)`
-                : '0 10px 30px rgba(0, 0, 0, 0.1)'
+                ? `hsl(0, ${buttonColor}%, ${Math.max(20, 100 - buttonColor * 0.5)}%)`
+                : '#333333',
+              borderColor: gamePhase === 'playing' && buttonColor > 0
+                ? `hsl(0, ${buttonColor}%, 60%)`
+                : '#666666',
+              boxShadow: gamePhase === 'playing' && buttonColor > 60
+                ? `0 0 80px hsla(0, ${buttonColor}%, 50%, 0.8), inset 0 0 40px hsla(0, ${buttonColor}%, 50%, 0.3)`
+                : '0 10px 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.1)'
             }}
             onClick={handleButtonPress}
             disabled={gamePhase !== 'playing' || hasPressed}
-            whileHover={!hasPressed && gamePhase === 'playing' ? { scale: 1.02 } : {}}
-            whileTap={!hasPressed && gamePhase === 'playing' ? { scale: 0.98 } : {}}
+            whileHover={!hasPressed && gamePhase === 'playing' ? { scale: 1.05 } : {}}
+            whileTap={!hasPressed && gamePhase === 'playing' ? { scale: 0.95 } : {}}
           >
             {/* 폭발 효과 */}
             <AnimatePresence>
               {buttonColor >= 100 && (
-                <motion.div
-                  className="absolute inset-0 bg-black"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: [1, 2], opacity: [1, 0] }}
-                  transition={{ duration: 0.5 }}
-                />
+                <>
+                  <motion.div
+                    className="absolute inset-0 bg-white"
+                    initial={{ scale: 0, opacity: 1 }}
+                    animate={{ 
+                      scale: [1, 3, 6], 
+                      opacity: [1, 0.8, 0] 
+                    }}
+                    transition={{ duration: 0.8 }}
+                  />
+                  {/* 폭발 파티클 */}
+                  {[...Array(20)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-2 h-2 bg-red-500 rounded-full"
+                      style={{
+                        left: '50%',
+                        top: '50%',
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                      initial={{ scale: 0, x: 0, y: 0 }}
+                      animate={{
+                        scale: [0, 1, 0],
+                        x: Math.cos(i * 18 * Math.PI / 180) * 150,
+                        y: Math.sin(i * 18 * Math.PI / 180) * 150,
+                        opacity: [1, 1, 0]
+                      }}
+                      transition={{ 
+                        duration: 1,
+                        delay: i * 0.02,
+                        ease: "easeOut"
+                      }}
+                    />
+                  ))}
+                </>
               )}
             </AnimatePresence>
           </motion.button>
@@ -614,9 +665,13 @@ export default function FreshGame() {
         {/* 순서 표시 */}
         {pressedOrder.length > 0 && (
           <motion.div
-            className="flex flex-col gap-1 max-h-48 overflow-y-auto"
-            initial={{ opacity: 0, x: 20 }}
+            className="flex flex-col gap-2 max-h-56 overflow-y-auto bg-gray-900 rounded-2xl p-4 border border-gray-700"
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
+            style={{ 
+              boxShadow: '0 0 30px rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)'
+            }}
           >
             {pressedOrder.map((name: string, index: number) => {
               const score = calculatePressedScore(index, pressedOrder.length)
@@ -624,22 +679,28 @@ export default function FreshGame() {
               return (
                 <motion.div
                   key={name}
-                  className="flex items-center gap-3"
-                  initial={{ opacity: 0, y: 10 }}
+                  className="flex items-center gap-4"
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: index * 0.08 }}
                 >
-                  <span className="text-xs text-gray-500 w-4 text-center" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <span 
+                    className="text-sm text-gray-400 w-6 text-center font-black"
+                    style={{ fontVariantNumeric: 'tabular-nums' }}
+                  >
                     {index + 1}
                   </span>
-                  <span className="text-sm md:text-base font-light tracking-wide min-w-12">
+                  <span className="text-lg md:text-xl font-black tracking-wide text-white min-w-16">
                     {name}
                   </span>
-                  <span className={`text-xs md:text-sm ${
-                    score < 0 ? 'text-red-600' : 
-                    score > 0 ? 'text-green-600' : 
-                    'text-gray-500'
-                  }`} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <span 
+                    className={`text-lg md:text-xl font-black ${
+                      score < 0 ? 'text-red-400' : 
+                      score > 0 ? 'text-green-400' : 
+                      'text-gray-400'
+                    }`} 
+                    style={{ fontVariantNumeric: 'tabular-nums' }}
+                  >
                     {score > 0 ? '+' : ''}{score}
                   </span>
                 </motion.div>
@@ -651,8 +712,8 @@ export default function FreshGame() {
               const notPressedCount = totalParticipants - pressedOrder.length
               return notPressedCount > 0 && gamePhase === 'playing' ? (
                 <motion.div 
-                  className="text-xs text-gray-400 mt-2 tracking-wide"
-                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  className="text-sm text-gray-500 mt-3 tracking-[0.2em] font-bold"
+                  animate={{ opacity: [0.6, 1, 0.6] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
                   {notPressedCount} LEFT
@@ -667,38 +728,60 @@ export default function FreshGame() {
       <AnimatePresence>
         {showResults && (
           <motion.div
-            className="fixed inset-0 bg-white z-30 p-6 flex flex-col"
+            className="fixed inset-0 bg-black z-30 p-6 flex flex-col"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
             <motion.h2 
-              className="text-3xl md:text-4xl font-thin tracking-[0.2em] text-center text-black mb-8 md:mb-12"
-              initial={{ y: -20, opacity: 0 }}
+              className="text-4xl md:text-5xl font-black tracking-[0.3em] text-center text-white mb-12 md:mb-16"
+              style={{ 
+                textShadow: '0 0 30px #ffffff40',
+                filter: 'drop-shadow(0 0 20px #ffffff30)'
+              }}
+              initial={{ y: -30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
             >
               FINAL SCORES
             </motion.h2>
             
-            <div className="flex-1 max-w-md mx-auto w-full">
+            <div className="flex-1 max-w-lg mx-auto w-full">
               {getFinalScores().map((result: any, index: number) => (
                 <motion.div
                   key={result.participant?.id}
-                  className="flex items-center justify-between mb-6 md:mb-8"
-                  initial={{ opacity: 0, x: -20 }}
+                  className="flex items-center justify-between mb-8 md:mb-10 p-4 rounded-2xl border"
+                  style={{
+                    backgroundColor: index === 0 ? '#1a1a1a' : 'transparent',
+                    borderColor: index === 0 ? '#ff4444' : '#333333',
+                    boxShadow: index === 0 ? '0 0 30px #ff444440' : 'none'
+                  }}
+                  initial={{ opacity: 0, x: -30 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={{ delay: index * 0.15 }}
                 >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-black text-white rounded-full flex items-center justify-center text-sm md:text-base font-light">
+                  <div className="flex items-center space-x-6">
+                    <div 
+                      className="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-lg md:text-xl font-black border-2"
+                      style={{
+                        backgroundColor: index === 0 ? '#ff4444' : '#333333',
+                        color: index === 0 ? '#000000' : '#ffffff',
+                        borderColor: index === 0 ? '#ff4444' : '#666666',
+                        boxShadow: index === 0 ? '0 0 20px #ff444460' : 'none'
+                      }}
+                    >
                       {index + 1}
                     </div>
-                    <p className="text-lg md:text-xl font-light tracking-wide">
+                    <p className="text-xl md:text-2xl font-black tracking-[0.1em] text-white">
                       {result.participant?.name}
                     </p>
                   </div>
                   <p 
-                    className="text-xl md:text-2xl font-light"
-                    style={{ fontVariantNumeric: 'tabular-nums' }}
+                    className={`text-2xl md:text-3xl font-black ${
+                      index === 0 ? 'text-red-400' : 'text-white'
+                    }`}
+                    style={{ 
+                      fontVariantNumeric: 'tabular-nums',
+                      textShadow: index === 0 ? '0 0 15px #ff444460' : 'none'
+                    }}
                   >
                     {result.score > 0 ? '+' : ''}{result.score}
                   </p>
@@ -708,10 +791,18 @@ export default function FreshGame() {
             
             <motion.button
               onClick={() => navigate('/')}
-              className="w-full py-4 md:py-6 text-lg md:text-xl font-light tracking-[0.15em] border-t border-gray-200 hover:bg-gray-50 transition-colors"
-              initial={{ opacity: 0, y: 20 }}
+              className="w-full py-6 md:py-8 text-xl md:text-2xl font-black tracking-[0.2em] border-4 border-red-500 text-white hover:bg-red-500 hover:text-black transition-all duration-300 rounded-2xl"
+              style={{ 
+                boxShadow: '0 0 30px #ff444440',
+                textShadow: '0 0 10px #ffffff40'
+              }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.8 }}
+              whileHover={{ 
+                scale: 1.02,
+                boxShadow: '0 0 40px #ff444460'
+              }}
               whileTap={{ scale: 0.98 }}
             >
               NEW GAME
@@ -724,7 +815,7 @@ export default function FreshGame() {
       {!showResults && (
         <motion.button
           onClick={() => navigate('/')}
-          className="absolute top-6 right-6 md:top-8 md:right-8 text-sm tracking-[0.15em] font-light opacity-70 hover:opacity-100 transition-opacity"
+          className="absolute top-6 right-6 md:top-8 md:right-8 text-sm md:text-base tracking-[0.15em] font-bold opacity-70 hover:opacity-100 transition-opacity text-white"
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
           whileTap={{ scale: 0.95 }}

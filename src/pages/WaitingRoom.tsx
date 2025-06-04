@@ -99,7 +99,7 @@ export default function WaitingRoom() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <motion.div
-          className="text-xl md:text-2xl font-light tracking-[0.2em] text-gray-600"
+          className="text-2xl md:text-3xl font-black tracking-[0.2em] text-gray-600"
           animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 2, repeat: Infinity }}
         >
@@ -109,32 +109,52 @@ export default function WaitingRoom() {
     )
   }
   
+  const gameColor = room?.game_type === 'fresh' ? '#ff4444' : '#ffcc00'
+  const bgColor = room?.game_type === 'fresh' ? '#000000' : '#ffffff'
+  const textColor = room?.game_type === 'fresh' ? '#ffffff' : '#000000'
+  
   return (
     <motion.div 
-      className="min-h-screen flex flex-col bg-gray-100 p-6 relative"
+      className="min-h-screen flex flex-col p-6 relative"
+      style={{ backgroundColor: bgColor }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       {/* 상단 헤더 */}
       <motion.div
-        className="flex justify-between items-start mb-12 md:mb-16"
-        initial={{ y: -20, opacity: 0 }}
+        className="flex justify-between items-start mb-16 md:mb-20"
+        initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
       >
         <div>
-          <h1 className="text-4xl md:text-6xl font-thin tracking-[0.2em] text-black uppercase mb-2">
+          <motion.h1 
+            className="text-6xl md:text-8xl font-black tracking-[0.25em] uppercase mb-4"
+            style={{ color: textColor }}
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 200 }}
+          >
             {room?.game_type}
-          </h1>
-          <p className="text-sm md:text-base font-light tracking-[0.15em] text-gray-500">
+          </motion.h1>
+          <motion.p 
+            className="text-sm md:text-lg font-bold tracking-[0.2em]"
+            style={{ color: `${textColor}80` }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
             ROOM {roomId}
-          </p>
+          </motion.p>
         </div>
         
         {/* 홈 버튼 */}
         <motion.button
           onClick={() => navigate('/')}
-          className="text-sm tracking-[0.15em] font-light opacity-70 hover:opacity-100 transition-opacity"
+          className="text-sm md:text-base font-bold tracking-[0.15em] opacity-70 hover:opacity-100 transition-opacity"
+          style={{ color: textColor }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.7 }}
           whileTap={{ scale: 0.95 }}
         >
           HOME
@@ -147,50 +167,69 @@ export default function WaitingRoom() {
           className="mb-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.3 }}
         >
-          <p className="text-sm md:text-base font-light tracking-[0.15em] text-gray-500 mb-6">
+          <p 
+            className="text-lg md:text-xl font-bold tracking-[0.2em] mb-8"
+            style={{ color: `${textColor}90` }}
+          >
             PLAYERS ({room?.participants.length})
           </p>
         </motion.div>
         
         {/* 참가자 리스트 */}
-        <div className="space-y-4 md:space-y-6">
+        <div className="space-y-6 md:space-y-8">
           <AnimatePresence mode="popLayout">
             {room?.participants.map((participant, index) => (
               <motion.div
                 key={participant.id}
-                initial={{ opacity: 0, x: -30 }}
+                initial={{ opacity: 0, x: -40 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 30 }}
+                exit={{ opacity: 0, x: 40 }}
                 transition={{ 
                   delay: index * 0.1,
                   type: "spring",
                   stiffness: 300,
-                  damping: 30
+                  damping: 25
                 }}
-                className="flex items-center space-x-4 md:space-x-6"
+                className="flex items-center space-x-6 md:space-x-8"
               >
                 {/* 번호 */}
                 <motion.div 
-                  className="w-8 h-8 md:w-10 md:h-10 bg-black text-white rounded-full flex items-center justify-center text-sm md:text-base font-light"
-                  whileHover={{ scale: 1.05 }}
-                  style={{ fontVariantNumeric: 'tabular-nums' }}
+                  className="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-lg md:text-xl font-black border-2"
+                  style={{
+                    backgroundColor: gameColor,
+                    color: room?.game_type === 'fresh' ? '#000000' : '#ffffff',
+                    borderColor: gameColor,
+                    boxShadow: `0 0 20px ${gameColor}40`,
+                    fontVariantNumeric: 'tabular-nums'
+                  }}
+                  whileHover={{ 
+                    scale: 1.1,
+                    boxShadow: `0 0 30px ${gameColor}60`
+                  }}
                 >
                   {index + 1}
                 </motion.div>
                 
                 {/* 참가자 정보 */}
                 <div>
-                  <p className="text-lg md:text-xl font-light tracking-wide text-black">
+                  <motion.p 
+                    className="text-xl md:text-2xl font-black tracking-[0.1em]"
+                    style={{ color: textColor }}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 + 0.2 }}
+                  >
                     {participant.name}
-                  </p>
+                  </motion.p>
                   {participant.id === room.host_id && (
                     <motion.p 
-                      className="text-xs md:text-sm tracking-[0.1em] text-gray-500 mt-1"
+                      className="text-sm md:text-base tracking-[0.15em] font-bold mt-1"
+                      style={{ color: gameColor }}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: 0.3 }}
+                      transition={{ delay: index * 0.1 + 0.4 }}
                     >
                       HOST
                     </motion.p>
@@ -203,7 +242,7 @@ export default function WaitingRoom() {
       </div>
       
       {/* 하단 액션 영역 */}
-      <div className="mt-12 md:mt-16">
+      <div className="mt-16 md:mt-20">
         {/* 시작 버튼 (호스트만) */}
         {isHost && (
           <AnimatePresence>
@@ -211,24 +250,43 @@ export default function WaitingRoom() {
               <motion.button
                 key="start-button"
                 onClick={startGame}
-                className="w-full py-4 md:py-6 text-lg md:text-xl font-light tracking-[0.15em] border-t border-black hover:bg-black hover:text-white transition-all duration-300"
-                initial={{ opacity: 0, y: 20 }}
+                className="w-full py-6 md:py-8 text-xl md:text-2xl font-black tracking-[0.2em] border-4 transition-all duration-300 rounded-2xl"
+                style={{
+                  color: textColor,
+                  borderColor: gameColor,
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = gameColor
+                  e.currentTarget.style.color = room?.game_type === 'fresh' ? '#000000' : '#ffffff'
+                  e.currentTarget.style.boxShadow = `0 0 40px ${gameColor}60`
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent'
+                  e.currentTarget.style.color = textColor
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+                exit={{ opacity: 0, y: 30 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 START GAME
               </motion.button>
             ) : (
               <motion.div
                 key="waiting-message"
-                className="w-full py-4 md:py-6 text-center"
-                initial={{ opacity: 0, y: 20 }}
+                className="w-full py-6 md:py-8 text-center border-4 rounded-2xl"
+                style={{ borderColor: `${gameColor}40` }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
+                exit={{ opacity: 0, y: 30 }}
               >
-                <p className="text-sm md:text-base font-light tracking-[0.15em] text-gray-500">
+                <p 
+                  className="text-lg md:text-xl font-bold tracking-[0.2em]"
+                  style={{ color: `${textColor}60` }}
+                >
                   NEED AT LEAST 2 PLAYERS
                 </p>
               </motion.div>
@@ -239,14 +297,16 @@ export default function WaitingRoom() {
         {/* 대기 메시지 (참가자) */}
         {!isHost && (
           <motion.div
-            className="w-full py-4 md:py-6 text-center"
+            className="w-full py-6 md:py-8 text-center border-4 rounded-2xl"
+            style={{ borderColor: `${gameColor}40` }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
             <motion.p 
-              className="text-sm md:text-base font-light tracking-[0.15em] text-gray-500"
-              animate={{ opacity: [0.5, 1, 0.5] }}
+              className="text-lg md:text-xl font-bold tracking-[0.2em]"
+              style={{ color: `${textColor}80` }}
+              animate={{ opacity: [0.6, 1, 0.6] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
               WAITING FOR HOST
@@ -258,14 +318,19 @@ export default function WaitingRoom() {
       {/* 추가 정보 - 참가 인원이 적을 때만 표시 */}
       {room && room.participants.length < 4 && (
         <motion.div
-          className="absolute top-1/2 right-6 md:right-8 transform -translate-y-1/2"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 0.3, x: 0 }}
-          transition={{ delay: 1 }}
+          className="absolute right-8 md:right-12 top-1/2 transform -translate-y-1/2"
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 0.4, x: 0 }}
+          transition={{ delay: 1.2 }}
         >
-          <p className="text-xs tracking-[0.2em] text-gray-400 writing-mode-vertical transform rotate-180">
-            SCAN QR TO JOIN
-          </p>
+          <div className="transform rotate-90">
+            <p 
+              className="text-xs md:text-sm tracking-[0.3em] font-bold whitespace-nowrap"
+              style={{ color: `${textColor}60` }}
+            >
+              SCAN QR TO JOIN
+            </p>
+          </div>
         </motion.div>
       )}
     </motion.div>
