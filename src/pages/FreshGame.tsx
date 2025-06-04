@@ -336,6 +336,12 @@ export default function FreshGame() {
       
       if (fetchError) throw fetchError
       
+      // 🔍 디버깅: 점수 계산 전 참가자 상태 확인
+      console.log('🎯 BEFORE RESET - Participants for scoring:', currentRoom.participants)
+      currentRoom.participants.forEach((p: any) => {
+        console.log(`🎯 ${p.name}: has_pressed=${p.has_pressed}, press_time=${p.press_time}`)
+      })
+      
       const resetParticipants = resetParticipantsState(currentRoom.participants)
       const currentRoundNumber = currentRoom.game_state?.current_round || currentRound
       
@@ -364,6 +370,8 @@ export default function FreshGame() {
     const gameState = newRoom.game_state
     const endedRound = gameState.current_round || currentRound
     
+    console.log('🔍 handleRoundEnd called for round', endedRound)
+    
     setGamePhaseWithRef('round-end')
     setRoundActive(false)
     setRoundEndMessage(`ROUND ${endedRound} END`)
@@ -371,7 +379,14 @@ export default function FreshGame() {
     resetGameFlags()
     clearColorInterval()
     
+    // 🔍 디버깅: 점수 계산할 때 사용되는 참가자 데이터 확인
+    console.log('🎯 PARTICIPANTS FOR SCORING:', newRoom.participants)
+    newRoom.participants.forEach(p => {
+      console.log(`🎯 ${p.name}: has_pressed=${p.has_pressed}, press_time=${p.press_time}`)
+    })
+    
     const results = calculateScores(newRoom.participants)
+    console.log('🎯 CALCULATED RESULTS:', results)
     setRoundResults(prev => [...prev, results])
     
     setTimeout(() => setRoundEndMessage(''), 2000)
@@ -401,16 +416,27 @@ export default function FreshGame() {
   }
   
   const calculateScores = (participants: any[]): RoundResult[] => {
+    console.log('🔥 CALCULATING SCORES - Input participants:', participants)
+    
+    // 각 참가자의 상태를 자세히 로그
+    participants.forEach((p: any, index: number) => {
+      console.log(`🔥 Participant ${index}: name=${p.name}, has_pressed=${p.has_pressed}, press_time=${p.press_time}`)
+    })
+    
     const pressed = participants
       .filter(p => p.has_pressed === true)
       .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
     
     const notPressed = participants.filter(p => p.has_pressed !== true)
+    
+    console.log('🔥 Pressed participants:', pressed.length, pressed.map(p => p.name))
+    console.log('🔥 Not pressed participants:', notPressed.length, notPressed.map(p => p.name))
+    
     const results: RoundResult[] = []
     const totalPressed = pressed.length
     
     // 누른 사람들 점수 계산
-    pressed.forEach((p, index) => {
+    pressed.forEach((p: any, index: number) => {
       let score = 0
       if (totalPressed === 1) {
         score = 1
@@ -424,6 +450,8 @@ export default function FreshGame() {
                index - middle
       }
       
+      console.log(`🔥 Score calculation for ${p.name}: ${score} (index: ${index}, press_time: ${p.press_time})`)
+      
       results.push({
         participantId: p.id,
         pressTime: p.press_time || 0,
@@ -432,7 +460,8 @@ export default function FreshGame() {
     })
     
     // 못 누른 사람들 -5점
-    notPressed.forEach(p => {
+    notPressed.forEach((p: any) => {
+      console.log(`🔥 Score for ${p.name}: -5 (not pressed)`)
       results.push({
         participantId: p.id,
         pressTime: -1,
@@ -440,6 +469,7 @@ export default function FreshGame() {
       })
     })
     
+    console.log('🔥 FINAL RESULTS:', results)
     return results
   }
   
@@ -484,22 +514,33 @@ export default function FreshGame() {
   const getFinalScores = () => {
     const totalScores: Record<string, number> = {}
     
-    room?.participants.forEach(p => {
+    console.log('🏆 CALCULATING FINAL SCORES')
+    console.log('🏆 All round results:', roundResults)
+    
+    room?.participants.forEach((p: any) => {
       totalScores[p.id] = 0
+      console.log(`🏆 Initialized ${p.name} (${p.id}) with 0 points`)
     })
     
-    roundResults.forEach(round => {
-      round.forEach(result => {
+    roundResults.forEach((round: RoundResult[], roundIndex: number) => {
+      console.log(`🏆 Processing round ${roundIndex + 1} results:`, round)
+      round.forEach((result: RoundResult) => {
+        const participant = room?.participants.find((p: any) => p.id === result.participantId)
+        const oldScore = totalScores[result.participantId] || 0
         totalScores[result.participantId] += result.score
+        console.log(`🏆 ${participant?.name}: ${oldScore} + ${result.score} = ${totalScores[result.participantId]}`)
       })
     })
     
-    return Object.entries(totalScores)
+    const finalResults = Object.entries(totalScores)
       .map(([id, score]) => ({
-        participant: room?.participants.find(p => p.id === id),
+        participant: room?.participants.find((p: any) => p.id === id),
         score
       }))
       .sort((a, b) => b.score - a.score)
+    
+    console.log('🏆 FINAL RANKING:', finalResults)
+    return finalResults
   }
 
   // 점수 계산 로직을 분리한 함수
@@ -542,7 +583,7 @@ export default function FreshGame() {
 
       {/* 라운드 인디케이터 */}
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex space-x-2">
-        {[1, 2, 3].map(round => (
+        {[1, 2, 3].map((round: number) => (
           <div
             key={round}
             className={`w-3 h-3 rounded-full transition-colors ${
@@ -628,7 +669,7 @@ export default function FreshGame() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
           >
-            {pressedOrder.map((name, index) => {
+            {pressedOrder.map((name: string, index: number) => {
               const score = calculatePressedScore(index, pressedOrder.length)
               
               return (
@@ -688,7 +729,7 @@ export default function FreshGame() {
             <h2 className="text-4xl font-bold mb-8 text-center">FINAL SCORES</h2>
             
             <div className="max-w-md mx-auto">
-              {getFinalScores().map((result, index) => (
+              {getFinalScores().map((result: any, index: number) => (
                 <motion.div
                   key={result.participant?.id}
                   className="flex items-center justify-between mb-4"
