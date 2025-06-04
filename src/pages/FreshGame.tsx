@@ -15,7 +15,7 @@ type GamePhase = 'waiting' | 'countdown' | 'playing' | 'round-end' | 'next-round
 export default function FreshGame() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
-  const [room, setRoom] = useState<GameRoom | null>(null) // UI 렌더링용
+  const [room, setRoom] = useState<GameRoom | null>(null)
   const [currentRound, setCurrentRound] = useState(1)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [buttonColor, setButtonColor] = useState(0)
@@ -26,6 +26,7 @@ export default function FreshGame() {
   const [pressedOrder, setPressedOrder] = useState<string[]>([])
   const [roundEndMessage, setRoundEndMessage] = useState<string>('')
   const [gamePhase, setGamePhase] = useState<GamePhase>('waiting')
+  
   const colorInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const roundStartTime = useRef<number>(0)
   
@@ -35,93 +36,87 @@ export default function FreshGame() {
   const roundStarted = useRef(false)
   const allPressedHandled = useRef(false)
   const isExploded = useRef(false)
-  const roomRef = useRef<GameRoom | null>(null) // Room ref 추가
+  const roomRef = useRef<GameRoom | null>(null)
   
-  // Helper function to update gamePhase with ref
+  // Helper functions
   const setGamePhaseWithRef = (newPhase: GamePhase) => {
     gamePhaseRef.current = newPhase
     setGamePhase(newPhase)
   }
   
-  // Room update with ref
   const setRoomWithRef = (newRoom: GameRoom | null) => {
     roomRef.current = newRoom
     setRoom(newRoom)
   }
-  
+
+  const isCurrentUserHost = () => {
+    const userId = localStorage.getItem('userId')
+    return localStorage.getItem('isHost') === 'true' || roomRef.current?.host_id === userId
+  }
+
+  const resetGameFlags = () => {
+    countdownStarted.current = false
+    roundStarted.current = false
+    allPressedHandled.current = false
+    isExploded.current = false
+  }
+
+  const clearColorInterval = () => {
+    if (colorInterval.current) {
+      clearInterval(colorInterval.current)
+      colorInterval.current = null
+    }
+  }
+
+  const resetParticipantsState = (participants: any[]) => {
+    return participants.map(p => ({
+      ...p,
+      has_pressed: false,
+      press_time: null
+    }))
+  }
+
   // 메인 useEffect - 게임 초기화와 구독
   useEffect(() => {
     if (!roomId) return
     
     console.log('FreshGame mounted with roomId:', roomId)
-    
-    // Reset all flags
-    countdownStarted.current = false
-    roundStarted.current = false
-    allPressedHandled.current = false
-    isExploded.current = false
-    
+    resetGameFlags()
     initializeGame()
     
-    // 실시간 구독 설정
-    const subscription = subscribeToRoom(roomId, (payload) => {
-      console.log('Game room update:', payload)
-      handleRoomUpdate(payload)
-    })
+    const subscription = subscribeToRoom(roomId, handleRoomUpdate)
     
     return () => {
       subscription.unsubscribe()
-      if (colorInterval.current) {
-        clearInterval(colorInterval.current)
-        colorInterval.current = null
-      }
+      clearColorInterval()
     }
   }, [roomId])
   
   const initializeGame = async () => {
     try {
-      console.log('Initializing game...')
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('rooms')
         .select('*')
         .eq('id', roomId)
         .single()
         
-      if (error) {
-        console.error('Failed to fetch room:', error)
-        throw error
-      }
+      if (fetchError) throw fetchError
       
-      console.log('Game state:', data.game_state)
       setRoomWithRef(data)
       
       const userId = localStorage.getItem('userId')
-      console.log('User ID:', userId, 'Host ID:', data.host_id)
-      
-      // 호스트 상태를 localStorage에 저장
-      const isCurrentUserHost = data.host_id === userId
-      localStorage.setItem('isHost', isCurrentUserHost.toString())
-      console.log('Host status saved:', isCurrentUserHost)
+      const isHost = data.host_id === userId
+      localStorage.setItem('isHost', isHost.toString())
       
       // 게임 상태 복원
       if (data.game_state?.current_round) {
         setCurrentRound(data.game_state.current_round)
       }
       
-      if (isCurrentUserHost && !data.game_state?.countdown_started && !data.game_state?.round_start_time) {
-        console.log('Host detected, starting countdown in 1 second...')
-        
-        setTimeout(() => {
-          console.log('Timer fired, calling startCountdown')
-          startCountdownAsHost(data)
-        }, 1000)
-      } else {
-        console.log('Participant detected or game already in progress')
-        
-        if (data.game_state?.countdown_started) {
-          console.log('Countdown detected, starting local countdown...')
-          startLocalCountdown()
-        }
+      if (isHost && !data.game_state?.countdown_started && !data.game_state?.round_start_time) {
+        setTimeout(() => startCountdownAsHost(), 1000)
+      } else if (data.game_state?.countdown_started) {
+        startLocalCountdown()
       }
     } catch (error) {
       console.error('게임 초기화 실패:', error)
@@ -130,44 +125,23 @@ export default function FreshGame() {
   }
   
   const handleRoomUpdate = (payload: any) => {
-    let newRoom: GameRoom | null = null
-    
-    if (payload.new) {
-      newRoom = payload.new as GameRoom
-    } else if (payload.eventType === 'UPDATE' && payload.new) {
-      newRoom = payload.new as GameRoom
-    }
-    
+    const newRoom = payload.new as GameRoom
     if (!newRoom) return
     
-    const oldRoom = roomRef.current
     setRoomWithRef(newRoom)
     
     const gameState = newRoom.game_state
-    console.log('Game state update:', gameState)
-    
-    // 현재 gamePhase를 ref에서 가져오기
     const currentGamePhase = gamePhaseRef.current
-    console.log('Current gamePhase:', currentGamePhase)
     
     // 카운트다운 시작 감지
-    if (gameState.countdown_started && 
-        !countdownStarted.current && 
-        currentGamePhase === 'waiting') {
-      console.log('Countdown detected, starting local countdown...')
+    if (gameState.countdown_started && !countdownStarted.current && currentGamePhase === 'waiting') {
       countdownStarted.current = true
       startLocalCountdown()
       return
     }
     
     // 라운드 시작 감지
-    if (gameState.round_start_time && 
-        !roundStarted.current && 
-        currentGamePhase !== 'playing') {
-      
-      console.log('NEW round start detected! Time:', gameState.round_start_time)
-      console.log('Current gamePhase before start:', currentGamePhase)
-      
+    if (gameState.round_start_time && !roundStarted.current && currentGamePhase !== 'playing') {
       roundStarted.current = true
       allPressedHandled.current = false
       isExploded.current = false
@@ -183,71 +157,43 @@ export default function FreshGame() {
     
     // playing 상태에서의 처리
     if (currentGamePhase === 'playing' && !isExploded.current && !allPressedHandled.current) {
-      // 다른 참가자들의 버튼 프레스 상태 업데이트
-      const pressedParticipants = newRoom.participants
-        .filter(p => p.has_pressed)
-        .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
-        .map(p => p.name)
-      
-      setPressedOrder(pressedParticipants)
-      
-      // 모든 참가자가 버튼을 누른 경우 처리
-      const allParticipants = newRoom.participants.length
-      const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
-      
-      if (pressedCount === allParticipants && !allPressedHandled.current) {
-        console.log('🎯 All participants pressed detected!')
-        allPressedHandled.current = true
-        
-        // 즉시 색상 인터벌 중지 (호스트와 참가자 모두)
-        if (colorInterval.current) {
-          clearInterval(colorInterval.current)
-          colorInterval.current = null
-          console.log('Color interval stopped due to all participants pressed')
-        }
-        
-        // 호스트만 라운드 종료 처리
-        const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
-        if (isCurrentUserHost) {
-          console.log('Host ending round after all pressed')
-          setTimeout(() => {
-            endRoundForAll()
-          }, 500)
-        } else {
-          console.log('Participant: waiting for round end from host')
-          // 참가자는 폭발 방지를 위해 게임 상태 변경
-          isExploded.current = true
-          setButtonColor(100)
-        }
-      }
+      handlePlayingPhaseUpdate(newRoom)
       return
     }
     
     // 라운드 종료 감지
     if (gameState.round_end && !gameState.round_start_time) {
-      console.log('Round end detected from game state')
       handleRoundEnd(newRoom)
-      return
+    }
+  }
+
+  const handlePlayingPhaseUpdate = (newRoom: GameRoom) => {
+    const pressedParticipants = newRoom.participants
+      .filter(p => p.has_pressed)
+      .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
+      .map(p => p.name)
+    
+    setPressedOrder(pressedParticipants)
+    
+    const allParticipants = newRoom.participants.length
+    const pressedCount = newRoom.participants.filter(p => p.has_pressed).length
+    
+    if (pressedCount === allParticipants && !allPressedHandled.current) {
+      allPressedHandled.current = true
+      clearColorInterval()
+      
+      if (isCurrentUserHost()) {
+        setTimeout(() => endRoundForAll(), 500)
+      } else {
+        isExploded.current = true
+        setButtonColor(100)
+      }
     }
   }
   
-  const startCountdownAsHost = async (roomData?: GameRoom) => {
-    const userId = localStorage.getItem('userId')
-    const currentRoom = roomData || roomRef.current
-    const isCurrentUserHost = currentRoom?.host_id === userId
+  const startCountdownAsHost = async () => {
+    if (!isCurrentUserHost() || !roomId || countdownStarted.current) return
     
-    if (!isCurrentUserHost || !roomId) {
-      console.log('Not host or no roomId:', { isCurrentUserHost, roomId, hasRoom: !!currentRoom })
-      return
-    }
-    
-    // 중복 방지 체크
-    if (countdownStarted.current) {
-      console.log('Countdown already started, skipping...')
-      return
-    }
-    
-    console.log('Host starting countdown broadcast...')
     countdownStarted.current = true
     
     try {
@@ -256,9 +202,7 @@ export default function FreshGame() {
         countdown_start_time: Date.now(),
         current_round: 1
       })
-      console.log('Countdown broadcast sent successfully')
       
-      // 호스트도 로컬 카운트다운 시작
       startLocalCountdown()
     } catch (error) {
       console.error('Failed to start countdown:', error)
@@ -266,24 +210,17 @@ export default function FreshGame() {
   }
   
   const startLocalCountdown = async () => {
-    console.log('Starting local countdown...')
     setGamePhaseWithRef('countdown')
-    
-    const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
     
     // 3, 2, 1 카운트다운
     for (let i = 3; i > 0; i--) {
       setCountdown(i)
-      console.log('Countdown:', i)
       await new Promise(resolve => setTimeout(resolve, 1000))
     }
     setCountdown(null)
-    console.log('Countdown finished')
     
-    if (isCurrentUserHost) {
-      console.log('Host starting round...')
+    if (isCurrentUserHost()) {
       try {
-        // DB에서 최신 라운드 번호 가져오기
         const { data: currentRoom, error: fetchError } = await supabase
           .from('rooms')
           .select('*')
@@ -293,39 +230,24 @@ export default function FreshGame() {
         if (fetchError) throw fetchError
         
         const currentRoundFromDB = currentRoom.game_state?.current_round || 1
-        console.log('Using round number from DB:', currentRoundFromDB)
-        
         const startTime = Date.now()
         
-        const newGameState = {
+        await updateGameState(roomId!, {
           round_start_time: startTime,
           current_round: currentRoundFromDB,
           countdown_started: false,
           round_end: false
-        }
-        
-        console.log('Sending round start with state:', newGameState)
-        
-        await updateGameState(roomId!, newGameState)
-        
-        console.log('Round start broadcast sent successfully')
+        })
       } catch (error) {
         console.error('Failed to start round:', error)
       }
     } else {
-      console.log('Participant waiting for round start signal...')
       setGamePhaseWithRef('waiting')
     }
   }
   
   const startRound = () => {
-          console.log('Starting round', roomRef.current?.game_state?.current_round || currentRound, 'current gamePhase:', gamePhaseRef.current)
-    
-    // 이미 playing 상태면 중복 실행 방지
-    if (gamePhaseRef.current === 'playing') {
-      console.log('Round already playing, skipping...')
-      return
-    }
+    if (gamePhaseRef.current === 'playing') return
     
     setGamePhaseWithRef('playing')
     setRoundActive(true)
@@ -334,76 +256,40 @@ export default function FreshGame() {
     setPressedOrder([])
     isExploded.current = false
     
-    console.log('Set gamePhase to playing')
+    clearColorInterval()
     
-    // 이전 인터벌 정리
-    if (colorInterval.current) {
-      console.log('Clearing previous interval')
-      clearInterval(colorInterval.current)
-      colorInterval.current = null
-    }
-    
-    // 색상 변화 시작 (4초 동안 흰색에서 검정으로)
     const startTime = Date.now()
     
-    console.log('Starting color interval at:', startTime)
-    
     colorInterval.current = setInterval(() => {
-      // 이미 폭발했거나 라운드가 종료된 경우
       if (isExploded.current || gamePhaseRef.current !== 'playing') {
-        console.log('Interval stopped: explosion or round ended')
-        if (colorInterval.current) {
-          clearInterval(colorInterval.current)
-          colorInterval.current = null
-        }
+        clearColorInterval()
         return
       }
       
       const elapsed = Date.now() - startTime
-      const progress = Math.min(elapsed / 4000, 1) // 4초
+      const progress = Math.min(elapsed / 4000, 1)
       const colorValue = progress * 100
-      
-      // 색상 변화 로그
-      if (Math.floor(elapsed / 500) !== Math.floor((elapsed - 50) / 500)) {
-        console.log(`Color progress: ${elapsed}ms, ${progress.toFixed(2)}, color: ${colorValue.toFixed(1)}%`)
-      }
       
       setButtonColor(colorValue)
       
-      // 4초 후 폭발
       if (progress >= 1 && !isExploded.current) {
         isExploded.current = true
-        console.log('4 seconds reached - EXPLOSION!')
         handleExplosion()
+        clearColorInterval()
         
-        if (colorInterval.current) {
-          clearInterval(colorInterval.current)
-          colorInterval.current = null
-        }
-        
-        // 라운드 종료 처리 (호스트만)
-        const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
-        
-        if (isCurrentUserHost) {
-          console.log('Host ending round after explosion')
-          setTimeout(() => {
-            endRoundForAll()
-          }, 1500)
+        if (isCurrentUserHost()) {
+          setTimeout(() => endRoundForAll(), 1500)
         }
       }
     }, 50)
-    
-    console.log('Color interval started with ID:', colorInterval.current)
   }
   
   const handleButtonPress = async () => {
     if (gamePhaseRef.current !== 'playing' || hasPressed || buttonColor >= 100) return
     
-    console.log('Button pressed!')
     setHasPressed(true)
     
     const pressTime = Date.now() - roundStartTime.current
-    
     const userId = localStorage.getItem('userId')
     
     if (roomRef.current) {
@@ -418,7 +304,6 @@ export default function FreshGame() {
           .from('rooms')
           .update({ participants: updatedParticipants })
           .eq('id', roomId)
-        console.log('Button press recorded')
       } catch (error) {
         console.error('Failed to record button press:', error)
       }
@@ -429,49 +314,18 @@ export default function FreshGame() {
     navigator.vibrate?.(200)
     setButtonColor(100)
     setRoundEndMessage('💥 EXPLOSION!')
-    console.log('Button exploded!')
     
-    setTimeout(() => {
-      setRoundEndMessage('')
-    }, 1500)
+    setTimeout(() => setRoundEndMessage(''), 1500)
   }
   
   const endRoundForAll = async () => {
-    const isCurrentUserHost = localStorage.getItem('isHost') === 'true'
+    if (!isCurrentUserHost() || !roomId) return
     
-    console.log('Attempting to end round:', { 
-      hasRoom: !!roomRef.current, 
-      isHost: isCurrentUserHost, 
-      roomId, 
-      currentRound,
-      gamePhase: gamePhaseRef.current 
-    })
+    if (gamePhaseRef.current === 'round-end' || gamePhaseRef.current === 'next-round') return
     
-    if (!isCurrentUserHost) {
-      console.log('Not host, cannot end round')
-      return
-    }
-    
-    if (!roomId) {
-      console.log('No roomId, cannot end round')
-      return
-    }
-    
-    // 이미 라운드가 종료된 경우 중복 실행 방지
-    if (gamePhaseRef.current === 'round-end' || gamePhaseRef.current === 'next-round') {
-      console.log('Round already ending, skipping...')
-      return
-    }
-    
-    console.log('Host ending round...')
     setGamePhaseWithRef('round-end')
     setRoundActive(false)
-    
-    // 색상 인터벌 정리
-    if (colorInterval.current) {
-      clearInterval(colorInterval.current)
-      colorInterval.current = null
-    }
+    clearColorInterval()
     
     try {
       const { data: currentRoom, error: fetchError } = await supabase
@@ -480,47 +334,26 @@ export default function FreshGame() {
         .eq('id', roomId)
         .single()
       
-      if (fetchError) {
-        console.error('Failed to fetch current room:', fetchError)
-        return
-      }
+      if (fetchError) throw fetchError
       
-      console.log('Fetched current room for ending round:', currentRoom)
-      
-      // 참가자 상태 초기화
-      const resetParticipants = currentRoom.participants.map((p: any) => ({
-        ...p,
-        has_pressed: false,
-        press_time: null
-      }))
-      
-      // 현재 라운드 번호 확인
+      const resetParticipants = resetParticipantsState(currentRoom.participants)
       const currentRoundNumber = currentRoom.game_state?.current_round || currentRound
       
       const newGameState = {
         ...currentRoom.game_state,
-        current_round: currentRoundNumber, // 라운드 번호는 증가시키지 않음
+        current_round: currentRoundNumber,
         round_end: true,
         round_start_time: null,
         countdown_started: false
       }
       
-      console.log('Updating room with new game state:', newGameState)
-      console.log('Current round:', currentRoundNumber)
-      
-      const { error } = await supabase
+      await supabase
         .from('rooms')
         .update({ 
           participants: resetParticipants,
           game_state: newGameState
         })
         .eq('id', roomId)
-      
-      if (error) {
-        console.error('Failed to update room:', error)
-      } else {
-        console.log('Round end broadcast sent successfully')
-      }
       
     } catch (error) {
       console.error('Failed to end round:', error)
@@ -531,32 +364,18 @@ export default function FreshGame() {
     const gameState = newRoom.game_state
     const endedRound = gameState.current_round || currentRound
     
-    console.log('Handling round end for round', endedRound)
     setGamePhaseWithRef('round-end')
     setRoundActive(false)
     setRoundEndMessage(`ROUND ${endedRound} END`)
     
-    // 플래그 리셋
-    roundStarted.current = false
-    countdownStarted.current = false
-    allPressedHandled.current = false
-    isExploded.current = false
+    resetGameFlags()
+    clearColorInterval()
     
-    // 색상 인터벌 강제 정리 (혹시 남아있을 경우)
-    if (colorInterval.current) {
-      clearInterval(colorInterval.current)
-      colorInterval.current = null
-    }
-    
-    // 점수 계산 - 최신 참가자 정보 사용
     const results = calculateScores(newRoom.participants)
     setRoundResults(prev => [...prev, results])
     
-    setTimeout(() => {
-      setRoundEndMessage('')
-    }, 2000)
+    setTimeout(() => setRoundEndMessage(''), 2000)
     
-    // 다음 라운드 또는 게임 종료
     if (endedRound < 3) {
       const nextRoundNumber = endedRound + 1
       setCurrentRound(nextRoundNumber)
@@ -564,35 +383,16 @@ export default function FreshGame() {
       setGamePhaseWithRef('next-round')
       
       setRoundEndMessage(`ROUND ${nextRoundNumber}`)
-      setTimeout(() => {
-        setRoundEndMessage('')
-      }, 1500)
+      setTimeout(() => setRoundEndMessage(''), 1500)
       
       setTimeout(() => {
-        const userId = localStorage.getItem('userId')
-        const isHostFromStorage = localStorage.getItem('isHost') === 'true'
-        const isCurrentUserHost = isHostFromStorage || (newRoom.host_id === userId)
-        
-        console.log('handleRoundEnd host check:', {
-          userId,
-          isHostFromStorage,
-          roomHostId: newRoom.host_id,
-          finalDecision: isCurrentUserHost,
-          nextRoundNumber,
-          endedRound
-        })
-        
-        if (isCurrentUserHost) {
-          console.log('Host confirmed, starting round', nextRoundNumber)
+        if (isCurrentUserHost()) {
           startNextRound(nextRoundNumber)
         } else {
-          console.log('Not host, waiting for host to start next round')
           setGamePhaseWithRef('waiting')
         }
       }, 2500)
     } else {
-      // 게임 종료 - 3라운드가 끝났을 때
-      console.log('Game finished after round 3')
       setTimeout(() => {
         setGamePhaseWithRef('final-results')
         setShowResults(true)
@@ -601,17 +401,11 @@ export default function FreshGame() {
   }
   
   const calculateScores = (participants: any[]): RoundResult[] => {
-    console.log('Calculating scores for participants:', participants)
-    
     const pressed = participants
       .filter(p => p.has_pressed === true)
       .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
     
     const notPressed = participants.filter(p => p.has_pressed !== true)
-    
-    console.log('Pressed participants:', pressed.length, pressed)
-    console.log('Not pressed participants:', notPressed.length, notPressed)
-    
     const results: RoundResult[] = []
     const totalPressed = pressed.length
     
@@ -619,23 +413,16 @@ export default function FreshGame() {
     pressed.forEach((p, index) => {
       let score = 0
       if (totalPressed === 1) {
-        // 혼자만 눌렀을 때
         score = 1
       } else if (totalPressed % 2 === 0) {
         const middle = totalPressed / 2
         score = index < middle ? -(middle - index) : (index - middle + 1)
       } else {
         const middle = Math.floor(totalPressed / 2)
-        if (index === middle) {
-          score = 0
-        } else if (index < middle) {
-          score = -(middle - index)
-        } else {
-          score = index - middle
-        }
+        score = index === middle ? 0 : 
+               index < middle ? -(middle - index) : 
+               index - middle
       }
-      
-      console.log(`Score for ${p.name}: ${score} (index: ${index}, press_time: ${p.press_time})`)
       
       results.push({
         participantId: p.id,
@@ -646,7 +433,6 @@ export default function FreshGame() {
     
     // 못 누른 사람들 -5점
     notPressed.forEach(p => {
-      console.log(`Score for ${p.name}: -5 (not pressed)`)
       results.push({
         participantId: p.id,
         pressTime: -1,
@@ -658,31 +444,10 @@ export default function FreshGame() {
   }
   
   const startNextRound = async (roundNumber: number) => {
-    const userId = localStorage.getItem('userId')
-    const isHostFromStorage = localStorage.getItem('isHost') === 'true'
+    if (!isCurrentUserHost()) return
     
-    console.log('startNextRound check:', {
-      userId,
-      isHostFromStorage,
-      roundNumber,
-      roomHostId: roomRef.current?.host_id
-    })
-    
-    const isCurrentUserHost = isHostFromStorage || (roomRef.current?.host_id === userId)
-    
-    if (!isCurrentUserHost) {
-      console.log('Not host, cannot start next round')
-      return
-    }
-    
-    console.log('Starting next round:', roundNumber)
     setGamePhaseWithRef('waiting')
-    
-    // 플래그 완전 리셋
-    roundStarted.current = false
-    countdownStarted.current = false
-    allPressedHandled.current = false
-    isExploded.current = false
+    resetGameFlags()
     
     try {
       const { data: currentRoom, error: fetchError } = await supabase
@@ -691,16 +456,9 @@ export default function FreshGame() {
         .eq('id', roomId)
         .single()
       
-      if (fetchError) {
-        console.error('Failed to fetch room for next round:', fetchError)
-        return
-      }
+      if (fetchError) throw fetchError
       
-      const resetParticipants = currentRoom.participants.map((p: any) => ({
-        ...p,
-        has_pressed: false,
-        press_time: null
-      }))
+      const resetParticipants = resetParticipantsState(currentRoom.participants)
       
       const newGameState = {
         round_end: false,
@@ -710,9 +468,7 @@ export default function FreshGame() {
         round_start_time: null
       }
       
-      console.log('Starting round', roundNumber, 'with game state:', newGameState)
-      
-      const { error } = await supabase
+      await supabase
         .from('rooms')
         .update({ 
           participants: resetParticipants,
@@ -720,11 +476,6 @@ export default function FreshGame() {
         })
         .eq('id', roomId)
       
-      if (error) {
-        console.error('Failed to start next round:', error)
-      } else {
-        console.log('Next round setup sent successfully')
-      }
     } catch (error) {
       console.error('Failed to start next round:', error)
     }
@@ -750,6 +501,21 @@ export default function FreshGame() {
       }))
       .sort((a, b) => b.score - a.score)
   }
+
+  // 점수 계산 로직을 분리한 함수
+  const calculatePressedScore = (index: number, totalPressed: number) => {
+    if (totalPressed === 1) return 1
+    
+    if (totalPressed % 2 === 0) {
+      const middle = totalPressed / 2
+      return index < middle ? -(middle - index) : (index - middle + 1)
+    } else {
+      const middle = Math.floor(totalPressed / 2)
+      return index === middle ? 0 : 
+             index < middle ? -(middle - index) : 
+             index - middle
+    }
+  }
   
   return (
     <motion.div 
@@ -768,10 +534,7 @@ export default function FreshGame() {
           <div>Countdown: <span className="text-green-300">{countdown || 'NULL'}</span></div>
           <div>Color: <span className="text-green-300">{buttonColor.toFixed(0)}%</span></div>
           <div>Pressed: <span className="text-green-300">{hasPressed ? 'YES' : 'NO'}</span></div>
-          <div>Host: <span className="text-green-300">{(() => {
-            const userId = localStorage.getItem('userId')
-            return room?.host_id === userId ? 'YES' : 'NO'
-          })()}</span></div>
+          <div>Host: <span className="text-green-300">{isCurrentUserHost() ? 'YES' : 'NO'}</span></div>
           <div>Participants: <span className="text-green-300">{room?.participants.length || 0}</span></div>
           <div>Pressed Count: <span className="text-green-300">{room?.participants.filter(p => p.has_pressed).length || 0}</span></div>
         </div>
@@ -832,7 +595,6 @@ export default function FreshGame() {
           layoutId="game-button"
           animate={{ scale: hasPressed ? 0.9 : 1 }}
         >
-          {/* 메인 버튼 - 색상 계산 방식 개선 */}
           <motion.button
             className="w-64 h-64 rounded-full shadow-2xl relative overflow-hidden transition-colors duration-100"
             style={{
@@ -867,22 +629,7 @@ export default function FreshGame() {
             animate={{ opacity: 1, x: 0 }}
           >
             {pressedOrder.map((name, index) => {
-              const totalPressed = pressedOrder.length
-              let score = 0
-              
-              if (totalPressed % 2 === 0) {
-                const middle = totalPressed / 2
-                score = index < middle ? -(middle - index) : (index - middle + 1)
-              } else {
-                const middle = Math.floor(totalPressed / 2)
-                if (index === middle) {
-                  score = 0
-                } else if (index < middle) {
-                  score = -(middle - index)
-                } else {
-                  score = index - middle
-                }
-              }
+              const score = calculatePressedScore(index, pressedOrder.length)
               
               return (
                 <motion.div
