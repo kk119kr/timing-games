@@ -97,9 +97,10 @@ export default function ChillGame() {
     if (!roomId) return
     
     let currentIndex = -1 // -1부터 시작하여 첫 번째 실행에서 0이 됨
-    let speed = 400 // 시작 속도 (ms)
+    let speed = 800 // 시작 속도 (느리게 시작)
     let rounds = 0
-    const minRounds = 3
+    let stepCount = 0 // 전체 스텝 카운트
+    const minRounds = 5 // 최소 5바퀴
     const totalParticipants = roomData.participants.length
     
     if (totalParticipants === 0) return
@@ -107,6 +108,7 @@ export default function ChillGame() {
     const runGlow = async () => {
       // 다음 참가자로 이동
       currentIndex = (currentIndex + 1) % totalParticipants
+      stepCount++
       
       try {
         // 상태 업데이트
@@ -115,12 +117,19 @@ export default function ChillGame() {
         // 한 바퀴 돌았을 때 (0번 인덱스로 돌아왔을 때)
         if (currentIndex === 0 && rounds > 0) {
           rounds++
+        } else if (currentIndex === 0) {
+          rounds = 1 // 첫 바퀴 완료
+        }
+        
+        // 점진적 가속 (매 스텝마다 조금씩 빨라짐)
+        speed = Math.max(60, speed * 0.97) // 더 부드러운 가속
+        
+        // 최소 5바퀴 이상 돌고 확률적으로 멈춤
+        if (rounds >= minRounds && stepCount > minRounds * totalParticipants) {
+          // 속도가 충분히 빨라진 후 멈출 확률 증가
+          const stopProbability = speed < 150 ? 0.15 : 0.05
           
-          // 속도 점진적 증가 (더 빨라짐)
-          speed = Math.max(80, speed * 0.85)
-          
-          // 최소 3바퀴 이상 돌고 확률적으로 멈춤 (더 긴 확률로 조정)
-          if (rounds >= minRounds && Math.random() < 0.2) {
+          if (Math.random() < stopProbability) {
             // 게임 종료! 현재 위치의 참가자가 승리
             if (glowInterval.current) {
               clearInterval(glowInterval.current)
@@ -134,8 +143,6 @@ export default function ChillGame() {
             })
             return
           }
-        } else if (currentIndex === 0) {
-          rounds = 1 // 첫 바퀴 완료
         }
         
         // 다음 실행 예약
@@ -158,11 +165,15 @@ export default function ChillGame() {
     
     // 당첨자인 경우 특별 효과
     if (room?.participants[myIndex]?.name === winnerName) {
+      console.log('당첨! 불꽃놀이 시작') // 디버깅용
       setShowFireworks(true)
       navigator.vibrate?.([200, 100, 200, 100, 300])
       
       // 5초 후 불꽃놀이 효과 종료
-      setTimeout(() => setShowFireworks(false), 5000)
+      setTimeout(() => {
+        console.log('불꽃놀이 종료') // 디버깅용
+        setShowFireworks(false)
+      }, 5000)
     }
   }
   
@@ -202,19 +213,21 @@ export default function ChillGame() {
       {/* 불꽃놀이 효과 - 포물선 애니메이션 */}
       <AnimatePresence>
         {showFireworks && (
-          <>
-            {[...Array(20)].map((_, i) => {
-              const angle = (i * 18) - 90 // -90도부터 270도까지 분산
-              const velocity = 50 + Math.random() * 100
-              const gravity = 500
+          <div className="fixed inset-0 pointer-events-none z-40">
+            {[...Array(24)].map((_, i) => {
+              const angle = (i * 15) - 90 // 더 조밀한 분산
+              const velocity = 60 + Math.random() * 80
+              const gravity = 400
               
               return (
                 <motion.div
                   key={`firework-${i}`}
-                  className="absolute w-3 h-3 bg-yellow-400 rounded-full"
+                  className="absolute w-4 h-4 bg-yellow-400 rounded-full shadow-lg"
                   style={{
                     left: '50%',
                     top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    boxShadow: '0 0 12px rgba(255, 255, 0, 0.8)'
                   }}
                   initial={{ 
                     x: 0, 
@@ -223,24 +236,24 @@ export default function ChillGame() {
                     opacity: 1
                   }}
                   animate={{ 
-                    x: Math.cos(angle * Math.PI / 180) * velocity * 2,
+                    x: Math.cos(angle * Math.PI / 180) * velocity * 3,
                     y: [
                       0,
-                      Math.sin(angle * Math.PI / 180) * velocity,
-                      Math.sin(angle * Math.PI / 180) * velocity + gravity
+                      Math.sin(angle * Math.PI / 180) * velocity * 1.5,
+                      Math.sin(angle * Math.PI / 180) * velocity * 1.5 + gravity
                     ],
-                    scale: [0, 1, 0.5],
+                    scale: [0, 1.2, 0.3],
                     opacity: [1, 1, 0]
                   }}
                   transition={{ 
-                    duration: 2 + Math.random(),
+                    duration: 2.5 + Math.random() * 0.5,
                     ease: "easeOut",
-                    delay: i * 0.1
+                    delay: i * 0.05
                   }}
                 />
               )
             })}
-          </>
+          </div>
         )}
       </AnimatePresence>
       
@@ -300,7 +313,7 @@ export default function ChillGame() {
         </AnimatePresence>
       </motion.div>
       
-      {/* 바우하우스 스타일 당첨 팝업 */}
+      {/* 미니멀 당첨 팝업 */}
       <AnimatePresence>
         {winner && (
           <motion.div 
@@ -310,33 +323,28 @@ export default function ChillGame() {
             exit={{ opacity: 0 }}
           >
             <motion.div 
-              className="bg-white border-8 border-black p-12 relative"
-              style={{ fontFamily: 'Arial, sans-serif' }}
-              initial={{ scale: 0, rotate: -5 }}
-              animate={{ scale: 1, rotate: 0 }}
+              className="bg-white border-2 border-black p-16 relative"
+              style={{ fontFamily: 'SF Pro Display, -apple-system, sans-serif' }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
               transition={{ 
                 type: "spring", 
-                stiffness: 200,
-                damping: 15,
+                stiffness: 300,
+                damping: 25,
                 delay: 0.2 
               }}
             >
-              {/* 기하학적 장식 요소 */}
-              <div className="absolute -top-2 -left-2 w-8 h-8 bg-yellow-400" />
-              <div className="absolute -top-2 -right-2 w-8 h-8 bg-red-500" />
-              <div className="absolute -bottom-2 -left-2 w-8 h-8 bg-blue-500" />
-              
               <div className="text-center">
                 <motion.h2 
-                  className="text-2xl font-black tracking-wider mb-6 uppercase"
+                  className="text-xl font-medium tracking-wide mb-8 text-gray-600 uppercase"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                 >
-                  WINNER
+                  Winner
                 </motion.h2>
                 <motion.p 
-                  className="text-5xl font-black tracking-tight"
+                  className="text-6xl font-light tracking-tight text-black"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.6, type: "spring" }}
@@ -348,7 +356,7 @@ export default function ChillGame() {
                 {isWinner && (
                   <motion.button
                     onClick={resetGame}
-                    className="mt-6 bg-black text-white px-6 py-2 font-bold tracking-wider uppercase pointer-events-auto hover:bg-gray-800 transition-colors"
+                    className="mt-12 border border-black text-black px-8 py-3 font-medium tracking-wide pointer-events-auto hover:bg-black hover:text-white transition-all duration-200"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 1 }}
