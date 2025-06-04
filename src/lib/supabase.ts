@@ -42,8 +42,49 @@ export interface GameState {
   countdown_start_time?: number
 }
 
+// 타입 가드 함수들
+export function isGameRoom(data: unknown): data is GameRoom {
+  return typeof data === 'object' && 
+         data !== null && 
+         'id' in data && 
+         'game_type' in data &&
+         'participants' in data &&
+         'game_state' in data
+}
+
+export function isValidGameType(type: string): type is 'chill' | 'fresh' {
+  return type === 'chill' || type === 'fresh'
+}
+
+export function isParticipant(data: unknown): data is Participant {
+  return typeof data === 'object' &&
+         data !== null &&
+         'id' in data &&
+         'name' in data
+}
+
+// Supabase 응답 타입 정의
+interface SupabaseResponse<T> {
+  data: T | null
+  error: Error | null
+}
+
+interface RoomUpdatePayload {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE'
+  new?: GameRoom
+  old?: GameRoom
+}
+
 // 방 생성
 export async function createRoom(gameType: 'chill' | 'fresh', hostId: string): Promise<GameRoom> {
+  if (!isValidGameType(gameType)) {
+    throw new Error(`Invalid game type: ${gameType}`)
+  }
+  
+  if (!hostId.trim()) {
+    throw new Error('Host ID is required')
+  }
+
   const roomId = generateRoomId()
   
   if (isTestMode) {
@@ -59,19 +100,21 @@ export async function createRoom(gameType: 'chill' | 'fresh', hostId: string): P
       game_state: {},
       status: 'waiting',
       created_at: new Date().toISOString()
-    } as GameRoom
+    }
   }
   
+  const newParticipant: Participant = {
+    id: hostId,
+    name: 'PT-1'
+  }
+
   const { data, error } = await supabase
     .from('rooms')
     .insert({
       id: roomId,
       game_type: gameType,
       host_id: hostId,
-      participants: [{
-        id: hostId,
-        name: 'PT-1'
-      }],
+      participants: [newParticipant],
       game_state: {},
       status: 'waiting'
     })
@@ -87,11 +130,23 @@ export async function createRoom(gameType: 'chill' | 'fresh', hostId: string): P
     throw new Error('No data returned from Supabase')
   }
   
-  return data as GameRoom
+  if (!isGameRoom(data)) {
+    throw new Error('Invalid room data returned from Supabase')
+  }
+  
+  return data
 }
 
 // 방 참가
 export async function joinRoom(roomId: string, userId: string): Promise<GameRoom> {
+  if (!roomId.trim()) {
+    throw new Error('Room ID is required')
+  }
+  
+  if (!userId.trim()) {
+    throw new Error('User ID is required')
+  }
+
   const { data: room, error: fetchError } = await supabase
     .from('rooms')
     .select('*')
@@ -100,14 +155,21 @@ export async function joinRoom(roomId: string, userId: string): Promise<GameRoom
     
   if (fetchError) throw fetchError
   if (!room) throw new Error('Room not found')
+  if (!isGameRoom(room)) throw new Error('Invalid room data')
+  
+  // 이미 참가한 사용자인지 확인
+  const isAlreadyJoined = room.participants.some(p => p.id === userId)
+  if (isAlreadyJoined) {
+    return room
+  }
   
   const participantNumber = room.participants.length + 1
-  const newParticipant = {
+  const newParticipant: Participant = {
     id: userId,
     name: `PT-${participantNumber}`
   }
   
-  const updatedParticipants = [...room.participants, newParticipant]
+  const updatedParticipants: Participant[] = [...room.participants, newParticipant]
   
   const { data, error } = await supabase
     .from('rooms')
@@ -120,12 +182,17 @@ export async function joinRoom(roomId: string, userId: string): Promise<GameRoom
     
   if (error) throw error
   if (!data) throw new Error('Failed to join room')
+  if (!isGameRoom(data)) throw new Error('Invalid room data after join')
   
-  return data as GameRoom
+  return data
 }
 
-// 실시간 구독 (수정된 버전)
-export function subscribeToRoom(roomId: string, callback: (payload: any) => void) {
+// 실시간 구독 (타입 안전성 강화)
+export function subscribeToRoom(roomId: string, callback: (payload: RoomUpdatePayload) => void) {
+  if (!roomId.trim()) {
+    throw new Error('Room ID is required')
+  }
+
   if (isTestMode) {
     return {
       unsubscribe: () => {}
@@ -147,12 +214,13 @@ export function subscribeToRoom(roomId: string, callback: (payload: any) => void
       (payload) => {
         console.log('Realtime event received:', payload.eventType, payload)
         
-        // 이벤트 타입에 관계없이 콜백 호출
-        callback({
-          eventType: payload.eventType,
-          new: payload.new,
-          old: payload.old
-        })
+        const typedPayload: RoomUpdatePayload = {
+          eventType: payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE',
+          new: payload.new ? (isGameRoom(payload.new) ? payload.new : undefined) : undefined,
+          old: payload.old ? (isGameRoom(payload.old) ? payload.old : undefined) : undefined
+        }
+        
+        callback(typedPayload)
       }
     )
     .subscribe((status) => {
@@ -167,8 +235,12 @@ export function subscribeToRoom(roomId: string, callback: (payload: any) => void
   return channel
 }
 
-// 게임 상태 업데이트
-export async function updateGameState(roomId: string, gameState: Partial<GameState>) {
+// 게임 상태 업데이트 (타입 안전성 강화)
+export async function updateGameState(roomId: string, gameState: Partial<GameState>): Promise<void> {
+  if (!roomId.trim()) {
+    throw new Error('Room ID is required')
+  }
+
   if (isTestMode) {
     console.log('Test mode: Updating game state', gameState)
     return
@@ -176,7 +248,38 @@ export async function updateGameState(roomId: string, gameState: Partial<GameSta
 
   console.log('Updating game state for room', roomId, ':', gameState)
 
-  // 🔁 기존 상태 가져오기
+  // 타입 검증된 게임 상태 생성
+  const validatedState: Partial<GameState> = {}
+  
+  if (gameState.current_round !== undefined) {
+    validatedState.current_round = Number(gameState.current_round)
+  }
+  if (gameState.round_start_time !== undefined) {
+    validatedState.round_start_time = Number(gameState.round_start_time)
+  }
+  if (gameState.countdown_start_time !== undefined) {
+    validatedState.countdown_start_time = Number(gameState.countdown_start_time)
+  }
+  if (gameState.glowing_index !== undefined) {
+    validatedState.glowing_index = Number(gameState.glowing_index)
+  }
+  if (gameState.button_color !== undefined) {
+    validatedState.button_color = Number(gameState.button_color)
+  }
+  if (gameState.winner !== undefined) {
+    validatedState.winner = String(gameState.winner)
+  }
+  if (gameState.round_end !== undefined) {
+    validatedState.round_end = Boolean(gameState.round_end)
+  }
+  if (gameState.countdown_started !== undefined) {
+    validatedState.countdown_started = Boolean(gameState.countdown_started)
+  }
+  if (gameState.round_scores !== undefined) {
+    validatedState.round_scores = gameState.round_scores
+  }
+
+  // 기존 상태 가져오기
   const { data: roomData, error: fetchError } = await supabase
     .from('rooms')
     .select('game_state')
@@ -188,11 +291,11 @@ export async function updateGameState(roomId: string, gameState: Partial<GameSta
     throw fetchError
   }
 
-  const currentState = roomData?.game_state || {}
+  const currentState: GameState = roomData?.game_state || {}
 
-  const newState = {
+  const newState: GameState = {
     ...currentState,
-    ...gameState // 새 상태가 기존 상태를 덮어씀
+    ...validatedState
   }
 
   const { error } = await supabase
@@ -208,9 +311,7 @@ export async function updateGameState(roomId: string, gameState: Partial<GameSta
   console.log('Game state updated successfully')
 }
 
-// 방 ID 생성 (6자리 영숫자 또는 4자리 숫자)
-// supabase.ts의 generateRoomId 함수 수정
+// 방 ID 생성 (항상 4자리 숫자)
 function generateRoomId(): string {
-  // ✅ 항상 4자리 숫자만 생성 (1000-9999)
   return Math.floor(1000 + Math.random() * 9000).toString()
 }
