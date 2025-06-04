@@ -342,6 +342,12 @@ export default function FreshGame() {
         console.log(`🎯 ${p.name}: has_pressed=${p.has_pressed}, press_time=${p.press_time}`)
       })
       
+      // ✅ 점수 계산을 먼저 수행
+      const results = calculateScores(currentRoom.participants)
+      console.log('🎯 CALCULATED RESULTS:', results)
+      setRoundResults(prev => [...prev, results])
+      
+      // ✅ 점수 계산 후에 상태 초기화
       const resetParticipants = resetParticipantsState(currentRoom.participants)
       const currentRoundNumber = currentRoom.game_state?.current_round || currentRound
       
@@ -379,15 +385,12 @@ export default function FreshGame() {
     resetGameFlags()
     clearColorInterval()
     
-    // 🔍 디버깅: 점수 계산할 때 사용되는 참가자 데이터 확인
-    console.log('🎯 PARTICIPANTS FOR SCORING:', newRoom.participants)
-    newRoom.participants.forEach(p => {
-      console.log(`🎯 ${p.name}: has_pressed=${p.has_pressed}, press_time=${p.press_time}`)
-    })
-    
-    const results = calculateScores(newRoom.participants)
-    console.log('🎯 CALCULATED RESULTS:', results)
-    setRoundResults(prev => [...prev, results])
+    // ✅ 점수 계산은 이미 endRoundForAll()에서 처리했으므로 제거
+    // 호스트가 아닌 참가자들은 라운드 결과를 여기서 받아야 함
+    if (!isCurrentUserHost()) {
+      // 참가자는 호스트가 계산한 결과를 기다림 (별도 처리 필요시 추가)
+      console.log('🔍 Participant: waiting for score results from host')
+    }
     
     setTimeout(() => setRoundEndMessage(''), 2000)
     
