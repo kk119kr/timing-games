@@ -2,15 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 완전한 모바일 전체 화면을 위한 리셋 */
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
 }
 
-body {
-  overscroll-behavior: none;
+html, body {
   margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overscroll-behavior: none;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /* 모바일에서 확대/축소 방지 */
+  touch-action: manipulation;
+  /* iOS Safari 하단 바 고려 */
+  height: 100vh;
+  height: -webkit-fill-available;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  height: -webkit-fill-available;
+  margin: 0;
+  padding: 0;
+}
+
+/* iOS Safari safe area 지원 */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}
+
+/* 모바일 브라우저 줌 방지 */
+input, textarea, select {
+  font-size: 16px;
+}
+
+/* 터치 디바이스 최적화 */
+button, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 커스텀 애니메이션 */

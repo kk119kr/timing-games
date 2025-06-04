@@ -507,15 +507,19 @@ export default function FreshGame() {
   
   return (
     <motion.div 
-      className="min-h-screen flex flex-col items-center justify-center bg-black relative overflow-hidden select-none"
+      className="h-screen w-screen flex flex-col items-center justify-center bg-black relative overflow-hidden select-none"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 뒤로가기 버튼 - 서브스턴스 스타일 */}
+      {/* 뒤로가기 버튼 - 모바일 안전 영역 고려 */}
       <motion.button
         onClick={() => navigate('/')}
-        className="absolute top-8 left-8 w-10 h-10 flex items-center justify-center rounded-full text-sm font-light text-white hover:bg-white hover:text-black transition-colors border border-white"
+        className="absolute top-4 left-4 w-10 h-10 flex items-center justify-center rounded-full text-sm font-light text-white hover:bg-white hover:text-black transition-colors border border-white z-50"
+        style={{
+          top: 'max(1rem, env(safe-area-inset-top))',
+          left: 'max(1rem, env(safe-area-inset-left))'
+        }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         whileTap={{ scale: 0.9 }}
@@ -525,7 +529,10 @@ export default function FreshGame() {
       
       {/* 라운드 인디케이터 - 기하학적 미니멀 스타일 */}
       <motion.div
-        className="absolute top-8 left-1/2 transform -translate-x-1/2 flex items-center space-x-6"
+        className="absolute top-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-4 md:space-x-6"
+        style={{
+          top: 'max(1rem, env(safe-area-inset-top))'
+        }}
         initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
       >
@@ -550,12 +557,12 @@ export default function FreshGame() {
             <motion.div
               className="w-px mt-2"
               style={{
-                height: round === currentRound ? '20px' : '10px',
+                height: round === currentRound ? '16px' : '8px',
                 backgroundColor: round <= currentRound ? '#ffffff' : '#666666'
               }}
               initial={{ height: 0 }}
               animate={{ 
-                height: round === currentRound ? '20px' : '10px'
+                height: round === currentRound ? '16px' : '8px'
               }}
               transition={{ delay: 0.3 }}
             />
@@ -574,7 +581,7 @@ export default function FreshGame() {
             key="countdown"
           >
             <motion.h2
-              className="text-8xl md:text-9xl font-black text-white"
+              className="text-7xl md:text-9xl font-black text-white"
               animate={{ 
                 scale: [1, 1.1, 1],
                 filter: [
@@ -596,14 +603,14 @@ export default function FreshGame() {
         
         {roundEndMessage && (
           <motion.div
-            className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+            className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
             key="roundEnd"
           >
             <motion.h2 
-              className="text-3xl md:text-4xl font-light tracking-[0.3em] text-center text-white"
+              className="text-2xl md:text-4xl font-light tracking-[0.3em] text-center text-white"
               style={{ 
                 filter: 'drop-shadow(0 0 30px #ffffff80)'
               }}
@@ -619,12 +626,12 @@ export default function FreshGame() {
       </AnimatePresence>
       
       {/* 메인 인터랙션 영역 */}
-      <div className="flex flex-col items-center gap-16">
+      <div className="flex flex-col items-center gap-12 md:gap-16">
         {/* 메인 버튼 - 홈화면 슬라이드 버튼과 연결된 디자인 */}
         <motion.div className="relative">
           <motion.button
             ref={buttonRef}
-            className="w-40 h-40 md:w-48 md:h-48 rounded-full relative overflow-hidden border-2"
+            className="w-32 h-32 md:w-48 md:h-48 rounded-full relative overflow-hidden border-2"
             style={{
               backgroundColor: gamePhase === 'playing' && buttonColor > 0
                 ? 'transparent'
@@ -644,7 +651,7 @@ export default function FreshGame() {
           >
             {/* 내부 코어 - 홈화면 버튼과 같은 구조 */}
             <motion.div
-              className="absolute inset-4 rounded-full flex items-center justify-center"
+              className="absolute inset-3 md:inset-4 rounded-full flex items-center justify-center"
               style={{
                 backgroundColor: gamePhase === 'playing' && buttonColor > 0
                   ? `hsl(0, 100%, ${Math.max(10, 100 - buttonColor * 0.8)}%)`
@@ -664,7 +671,7 @@ export default function FreshGame() {
             >
               {/* 중앙 인디케이터 */}
               <motion.div
-                className="w-4 h-4 rounded-full"
+                className="w-3 h-3 md:w-4 md:h-4 rounded-full"
                 style={{
                   backgroundColor: gamePhase === 'playing' && buttonColor > 60 ? '#ffffff' : '#000000'
                 }}
@@ -741,7 +748,7 @@ export default function FreshGame() {
                   {[...Array(12)].map((_, i) => (
                     <motion.div
                       key={`fragment-${i}`}
-                      className="absolute w-1 h-8 bg-white"
+                      className="absolute w-1 h-6 md:h-8 bg-white"
                       style={{
                         left: '50%',
                         top: '50%',
@@ -783,7 +790,7 @@ export default function FreshGame() {
         <AnimatePresence>
           {pressedOrder.length > 0 && (
             <motion.div
-              className="absolute right-8 top-1/2 transform -translate-y-1/2 flex flex-col gap-3"
+              className="absolute right-2 md:right-8 top-1/2 transform -translate-y-1/2 flex flex-col gap-2 md:gap-3 max-w-xs"
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 30 }}
@@ -794,13 +801,13 @@ export default function FreshGame() {
                 return (
                   <motion.div
                     key={name}
-                    className="flex items-center gap-4 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg px-4 py-2 border border-white border-opacity-20"
+                    className="flex items-center gap-2 md:gap-4 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg px-2 md:px-4 py-1 md:py-2 border border-white border-opacity-20"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.08 }}
                   >
                     <motion.div 
-                      className="w-6 h-6 rounded-full border border-white flex items-center justify-center text-xs font-light text-white"
+                      className="w-5 h-5 md:w-6 md:h-6 rounded-full border border-white flex items-center justify-center text-xs font-light text-white"
                       animate={{
                         backgroundColor: index === 0 ? '#ffffff' : 'transparent',
                         color: index === 0 ? '#000000' : '#ffffff'
@@ -808,11 +815,11 @@ export default function FreshGame() {
                     >
                       {index + 1}
                     </motion.div>
-                    <span className="text-sm font-light tracking-wide text-white min-w-12">
+                    <span className="text-xs md:text-sm font-light tracking-wide text-white min-w-8 md:min-w-12">
                       {name}
                     </span>
                     <span 
-                      className={`text-sm font-light tabular-nums ${
+                      className={`text-xs md:text-sm font-light tabular-nums ${
                         score < 0 ? 'text-red-400' : 
                         score > 0 ? 'text-green-400' : 
                         'text-gray-400'
@@ -829,7 +836,7 @@ export default function FreshGame() {
                 const notPressedCount = totalParticipants - pressedOrder.length
                 return notPressedCount > 0 && gamePhase === 'playing' ? (
                   <motion.div 
-                    className="text-xs text-gray-400 tracking-[0.2em] font-light mt-2 px-4"
+                    className="text-xs text-gray-400 tracking-[0.2em] font-light mt-1 md:mt-2 px-2 md:px-4"
                     animate={{ opacity: [0.5, 1, 0.5] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
                   >
@@ -846,14 +853,18 @@ export default function FreshGame() {
       <AnimatePresence>
         {showResults && (
           <motion.div
-            className="fixed inset-0 bg-black z-30 p-6 flex flex-col"
+            className="fixed inset-0 bg-black z-30 p-4 flex flex-col"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
             {/* 뒤로가기 버튼 */}
             <motion.button
               onClick={() => navigate('/')}
-              className="absolute top-8 left-8 w-10 h-10 flex items-center justify-center rounded-full text-sm font-light text-white hover:bg-white hover:text-black transition-colors border border-white"
+              className="absolute top-4 left-4 w-10 h-10 flex items-center justify-center rounded-full text-sm font-light text-white hover:bg-white hover:text-black transition-colors border border-white z-50"
+              style={{
+                top: 'max(1rem, env(safe-area-inset-top))',
+                left: 'max(1rem, env(safe-area-inset-left))'
+              }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               whileTap={{ scale: 0.9 }}
@@ -862,7 +873,7 @@ export default function FreshGame() {
             </motion.button>
             
             <motion.h2 
-              className="text-3xl md:text-4xl font-light tracking-[0.4em] text-center text-white mb-12 mt-16 uppercase"
+              className="text-2xl md:text-4xl font-light tracking-[0.4em] text-center text-white mb-8 mt-16 uppercase"
               initial={{ y: -30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
             >
@@ -873,7 +884,7 @@ export default function FreshGame() {
               {getFinalScores().map((result: any, index: number) => (
                 <motion.div
                   key={result.participant?.id}
-                  className="flex items-center justify-between mb-6 p-4 bg-white bg-opacity-5 backdrop-blur-sm rounded-lg border border-white border-opacity-10"
+                  className="flex items-center justify-between mb-4 md:mb-6 p-3 md:p-4 bg-white bg-opacity-5 backdrop-blur-sm rounded-lg border border-white border-opacity-10"
                   initial={{ opacity: 0, x: -30 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.15 }}
@@ -882,9 +893,9 @@ export default function FreshGame() {
                     borderColor: index === 0 ? '#ffffff40' : '#ffffff20',
                   }}
                 >
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-3 md:space-x-4">
                     <motion.div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-light border"
+                      className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm font-light border"
                       style={{
                         backgroundColor: index === 0 ? '#ffffff' : 'transparent',
                         color: index === 0 ? '#000000' : '#ffffff',
@@ -896,12 +907,12 @@ export default function FreshGame() {
                     >
                       {index + 1}
                     </motion.div>
-                    <p className="text-lg font-light tracking-[0.1em] text-white">
+                    <p className="text-base md:text-lg font-light tracking-[0.1em] text-white">
                       {result.participant?.name}
                     </p>
                   </div>
                   <p 
-                    className={`text-xl font-light tabular-nums ${
+                    className={`text-lg md:text-xl font-light tabular-nums ${
                       index === 0 ? 'text-white' : 'text-gray-400'
                     }`}
                   >
@@ -913,7 +924,10 @@ export default function FreshGame() {
             
             <motion.button
               onClick={() => navigate('/')}
-              className="w-full py-6 text-xl font-light tracking-[0.3em] border border-white text-white hover:bg-white hover:text-black transition-all duration-300 rounded-lg uppercase"
+              className="w-full py-4 md:py-6 text-lg md:text-xl font-light tracking-[0.3em] border border-white text-white hover:bg-white hover:text-black transition-all duration-300 rounded-lg uppercase"
+              style={{
+                marginBottom: 'max(1rem, env(safe-area-inset-bottom))'
+              }}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
@@ -931,15 +945,15 @@ export default function FreshGame() {
       
       {/* 배경 기하학적 요소들 - 서브스턴스 스타일 */}
       <motion.div
-        className="absolute top-1/4 left-12 w-px h-24 bg-white bg-opacity-20"
+        className="absolute top-1/4 left-4 md:left-12 w-px h-16 md:h-24 bg-white bg-opacity-20"
         initial={{ height: 0 }}
-        animate={{ height: 96 }}
+        animate={{ height: window.innerWidth < 768 ? 64 : 96 }}
         transition={{ delay: 1, duration: 1 }}
       />
       <motion.div
-        className="absolute bottom-1/4 right-12 w-px h-24 bg-white bg-opacity-20"
+        className="absolute bottom-1/4 right-4 md:right-12 w-px h-16 md:h-24 bg-white bg-opacity-20"
         initial={{ height: 0 }}
-        animate={{ height: 96 }}
+        animate={{ height: window.innerWidth < 768 ? 64 : 96 }}
         transition={{ delay: 1.2, duration: 1 }}
       />
       

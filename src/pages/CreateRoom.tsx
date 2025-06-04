@@ -67,15 +67,19 @@ export default function CreateRoom() {
   
   return (
     <motion.div 
-      className="min-h-screen flex flex-col items-center justify-center bg-white relative overflow-hidden"
+      className="h-screen w-screen flex flex-col items-center justify-center bg-white relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 뒤로가기 버튼 - 미니멀 */}
+      {/* 뒤로가기 버튼 - 모바일 안전 영역 고려 */}
       <motion.button
         onClick={() => navigate('/')}
-        className="absolute top-8 left-8 w-10 h-10 flex items-center justify-center border border-black rounded-full text-sm font-light hover:bg-black hover:text-white transition-colors"
+        className="absolute top-4 left-4 w-10 h-10 flex items-center justify-center border border-black rounded-full text-sm font-light hover:bg-black hover:text-white transition-colors z-50"
+        style={{
+          top: 'max(1rem, env(safe-area-inset-top))',
+          left: 'max(1rem, env(safe-area-inset-left))'
+        }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         whileTap={{ scale: 0.9 }}
@@ -83,9 +87,13 @@ export default function CreateRoom() {
         ←
       </motion.button>
       
-      {/* 게임 타입 인디케이터 */}
+      {/* 게임 타입 인디케이터 - 모바일 안전 영역 고려 */}
       <motion.div
-        className="absolute top-8 right-8"
+        className="absolute top-4 right-4"
+        style={{
+          top: 'max(1rem, env(safe-area-inset-top))',
+          right: 'max(1rem, env(safe-area-inset-right))'
+        }}
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
       >
@@ -104,7 +112,7 @@ export default function CreateRoom() {
       
       {/* 중앙 컨텐츠 */}
       <motion.div
-        className="flex flex-col items-center"
+        className="flex flex-col items-center px-4"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
@@ -113,7 +121,7 @@ export default function CreateRoom() {
           {loading ? (
             <motion.div
               key="loading"
-              className="w-48 h-48 flex items-center justify-center border border-gray-300 rounded-lg"
+              className="w-44 h-44 md:w-48 md:h-48 flex items-center justify-center border border-gray-300 rounded-lg"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -142,7 +150,7 @@ export default function CreateRoom() {
             >
               {/* QR 코드 컨테이너 */}
               <motion.div
-                className="relative mb-8 bg-white border border-black rounded-lg p-6"
+                className="relative mb-6 bg-white border border-black rounded-lg p-4"
                 initial={{ scale: 0.8 }}
                 animate={{ scale: showQR ? 1 : 0.8 }}
                 transition={{ 
@@ -151,7 +159,7 @@ export default function CreateRoom() {
                   damping: 25 
                 }}
               >
-                <motion.div className="w-48 h-48 flex items-center justify-center">
+                <motion.div className="w-44 h-44 md:w-48 md:h-48 flex items-center justify-center">
                   <AnimatePresence>
                     {showQR && qrCodeUrl ? (
                       <motion.img
@@ -181,7 +189,7 @@ export default function CreateRoom() {
               
               {/* 방 ID 표시 */}
               <motion.div
-                className="text-center mb-12"
+                className="text-center mb-8"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.8 }}
@@ -192,7 +200,7 @@ export default function CreateRoom() {
                   ROOM
                 </motion.p>
                 <motion.p 
-                  className="text-6xl md:text-7xl font-black tracking-[0.3em] text-black"
+                  className="text-5xl md:text-7xl font-black tracking-[0.3em] text-black"
                   style={{ 
                     fontFamily: 'system-ui, -apple-system, sans-serif',
                     fontVariantNumeric: 'tabular-nums'
@@ -218,9 +226,12 @@ export default function CreateRoom() {
         </AnimatePresence>
       </motion.div>
       
-      {/* 하단 액션 영역 */}
+      {/* 하단 액션 영역 - 모바일 안전 영역 고려 */}
       <motion.div
-        className="absolute bottom-12 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-6"
+        className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-4 px-4"
+        style={{
+          bottom: 'max(1rem, env(safe-area-inset-bottom))'
+        }}
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 1.2 }}
@@ -237,7 +248,7 @@ export default function CreateRoom() {
         {roomId && (
           <motion.button
             onClick={handleGoToRoom}
-            className="px-8 py-3 border border-black rounded-full text-sm font-light tracking-[0.2em] hover:bg-black hover:text-white transition-all duration-300 uppercase"
+            className="px-6 py-3 border border-black rounded-full text-sm font-light tracking-[0.2em] hover:bg-black hover:text-white transition-all duration-300 uppercase"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.4 }}
@@ -251,15 +262,15 @@ export default function CreateRoom() {
       
       {/* 배경 기하학적 요소들 - 서브스턴스 스타일 */}
       <motion.div
-        className="absolute top-1/4 left-8 w-px h-24 bg-gray-200"
+        className="absolute top-1/4 left-4 w-px h-16 md:h-24 bg-gray-200"
         initial={{ height: 0 }}
-        animate={{ height: 96 }}
+        animate={{ height: window.innerWidth < 768 ? 64 : 96 }}
         transition={{ delay: 2, duration: 1 }}
       />
       <motion.div
-        className="absolute bottom-1/4 right-8 w-px h-24 bg-gray-200"
+        className="absolute bottom-1/4 right-4 w-px h-16 md:h-24 bg-gray-200"
         initial={{ height: 0 }}
-        animate={{ height: 96 }}
+        animate={{ height: window.innerWidth < 768 ? 64 : 96 }}
         transition={{ delay: 2.2, duration: 1 }}
       />
       

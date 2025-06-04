@@ -1,200 +1,97 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase, subscribeToRoom, updateGameState } from '../lib/supabase'
+import { supabase, subscribeToRoom, joinRoom } from '../lib/supabase'
 import type { GameRoom } from '../lib/supabase'
-import { GamePeerManager } from '../lib/peer'
 
-export default function ChillGame() {
+export default function WaitingRoom() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
   const [room, setRoom] = useState<GameRoom | null>(null)
-  const [myIndex, setMyIndex] = useState<number>(-1)
-  const [isGlowing, setIsGlowing] = useState(false)
-  const [winner, setWinner] = useState<string | null>(null)
-  const [showFireworks, setShowFireworks] = useState(false)
-  const [showWinnerText, setShowWinnerText] = useState(false)
-  const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 })
-  const peerManager = useRef<GamePeerManager | null>(null)
-  const glowInterval = useRef<ReturnType<typeof setInterval> | null>(null)
-  const buttonRef = useRef<HTMLDivElement>(null)
+  const [loading, setLoading] = useState(true)
+  const [myParticipantIndex, setMyParticipantIndex] = useState<number>(-1)
+  const [error, setError] = useState<string>('')
+  const subscription = useRef<any>(null)
   
-  // 버튼 위치 추적
   useEffect(() => {
-    if (buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      setButtonPosition({
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
-      })
+    if (!roomId) {
+      navigate('/')
+      return
     }
-  }, [isGlowing])
-  
-  useEffect(() => {
-    if (!roomId) return
     
-    initializeGame()
-    
-    const subscription = subscribeToRoom(roomId, (payload) => {
-      if (payload.new) {
-        const newRoom = payload.new as GameRoom
-        setRoom(newRoom)
-        
-        const userId = localStorage.getItem('userId')
-        const idx = newRoom.participants.findIndex(p => p.id === userId)
-        setMyIndex(idx)
-        
-        if (newRoom.game_state.glowing_index === idx) {
-          setIsGlowing(true)
-        } else {
-          setIsGlowing(false)
-        }
-        
-        if (newRoom.game_state.winner) {
-          handleWinner(newRoom.game_state.winner)
-        }
-      }
-    })
+    initializeWaitingRoom()
     
     return () => {
-      subscription.unsubscribe()
-      if (glowInterval.current) {
-        clearInterval(glowInterval.current)
-        glowInterval.current = null
+      if (subscription.current) {
+        subscription.current.unsubscribe()
       }
-      peerManager.current?.destroy()
     }
   }, [roomId])
   
-  const initializeGame = async () => {
-    if (!roomId) return
-    
+  const initializeWaitingRoom = async () => {
     try {
-      const { data, error } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('id', roomId)
-        .single()
-        
-      if (error) throw error
-      
-      setRoom(data)
-      
-      const userId = localStorage.getItem('userId')
+      // 사용자 ID 생성 또는 가져오기
+      let userId = localStorage.getItem('userId')
       if (!userId) {
-        navigate('/')
-        return
+        userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        localStorage.setItem('userId', userId)
       }
       
-      const idx = data.participants.findIndex((p: any) => p.id === userId)
-      setMyIndex(idx)
+      // 방 참가
+      const joinedRoom = await joinRoom(roomId!, userId)
+      setRoom(joinedRoom)
       
-      if (data.host_id === userId && !data.game_state.winner) {
-        startGlowSequence(data)
-      }
-    } catch (error) {
-      console.error('게임 초기화 실패:', error)
-      navigate('/')
-    }
-  }
-  
-  const startGlowSequence = async (roomData: GameRoom) => {
-    if (!roomId) return
-    
-    let currentIndex = -1
-    let speed = 500
-    let rounds = 0
-    let stepCount = 0
-    const minRounds = 3
-    const totalParticipants = roomData.participants.length
-    
-    if (totalParticipants === 0) return
-    
-    const runGlow = async () => {
-      currentIndex = (currentIndex + 1) % totalParticipants
-      stepCount++
+      // 내 참가자 인덱스 찾기
+      const myIndex = joinedRoom.participants.findIndex(p => p.id === userId)
+      setMyParticipantIndex(myIndex)
       
-      try {
-        await updateGameState(roomId, { glowing_index: currentIndex })
-        
-        if (currentIndex === 0 && rounds > 0) {
-          rounds++
-        } else if (currentIndex === 0) {
-          rounds = 1
-        }
-        
-        const accelerationFactor = totalParticipants > 5 ? 0.93 : 0.95
-        speed = Math.max(40, speed * accelerationFactor)
-        
-        if (rounds >= minRounds && stepCount > minRounds * totalParticipants) {
-          const stopProbability = speed < 100 ? 0.25 : speed < 200 ? 0.15 : 0.03
+      setLoading(false)
+      
+      // 실시간 구독 설정
+      subscription.current = subscribeToRoom(roomId!, (payload) => {
+        if (payload.new) {
+          const newRoom = payload.new as GameRoom
+          setRoom(newRoom)
           
-          if (Math.random() < stopProbability) {
-            if (glowInterval.current) {
-              clearInterval(glowInterval.current)
-              glowInterval.current = null
-            }
-            
-            const winner = roomData.participants[currentIndex]
-            await updateGameState(roomId, { 
-              glowing_index: currentIndex,
-              winner: winner.name 
-            })
-            return
+          // 게임 시작 시 게임 페이지로 이동
+          if (newRoom.status === 'playing') {
+            const gameType = newRoom.game_type
+            navigate(`/game/${gameType}/${roomId}`)
           }
         }
-        
-        glowInterval.current = setTimeout(runGlow, speed)
-      } catch (error) {
-        console.error('게임 상태 업데이트 실패:', error)
-        if (glowInterval.current) {
-          clearInterval(glowInterval.current)
-          glowInterval.current = null
-        }
-      }
-    }
-    
-    glowInterval.current = setTimeout(runGlow, speed)
-  }
-  
-  const handleWinner = (winnerName: string) => {
-    setWinner(winnerName)
-    setShowWinnerText(true)
-    
-    const isWinner = room?.participants[myIndex]?.name === winnerName
-    
-    if (isWinner) {
-      setTimeout(() => {
-        setShowFireworks(true)
-        navigator.vibrate?.([200, 100, 200, 100, 300])
-      }, 300)
+      })
       
-      setTimeout(() => {
-        setShowFireworks(false)
-      }, 4000)
+    } catch (error: any) {
+      console.error('대기실 초기화 실패:', error)
+      setError(error.message || '방을 찾을 수 없습니다')
+      setLoading(false)
     }
   }
   
-  const resetGame = async () => {
-    if (!roomId || !room) return
+  const startGame = async () => {
+    if (!room || !roomId) return
     
     try {
-      await updateGameState(roomId, { 
-        glowing_index: -1,
-        winner: undefined 
-      })
-      setWinner(null)
-      setShowFireworks(false)
-      setShowWinnerText(false)
-      setIsGlowing(false)
+      // 게임 상태를 'playing'으로 업데이트
+      const { error } = await supabase
+        .from('rooms')
+        .update({ status: 'playing' })
+        .eq('id', roomId)
+      
+      if (error) throw error
+      
+      // 게임 페이지로 이동
+      navigate(`/game/${room.game_type}/${roomId}`)
+      
     } catch (error) {
-      console.error('게임 리셋 실패:', error)
+      console.error('게임 시작 실패:', error)
     }
   }
   
-  if (!room || myIndex === -1) {
+  // 로딩 상태
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="h-screen w-screen flex items-center justify-center bg-white">
         <motion.div
           className="w-12 h-12 border-2 border-black rounded-full"
           style={{ borderTopColor: 'transparent' }}
@@ -205,67 +102,48 @@ export default function ChillGame() {
     )
   }
   
-  const isWinner = room.participants[myIndex]?.name === winner
+  // 에러 상태
+  if (error) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-white px-4">
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h2 className="text-xl font-black tracking-[0.2em] text-gray-800 mb-4">ERROR</h2>
+          <p className="text-sm font-light text-gray-600 mb-8">{error}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-3 border border-black rounded-full text-sm font-light tracking-[0.2em] hover:bg-black hover:text-white transition-all duration-300 uppercase"
+          >
+            HOME
+          </button>
+        </motion.div>
+      </div>
+    )
+  }
+  
+  if (!room) return null
+  
+  const isHost = room.host_id === localStorage.getItem('userId')
+  const canStartGame = room.participants.length >= 2
   
   return (
     <motion.div 
-      className="min-h-screen flex flex-col items-center justify-center bg-white relative overflow-hidden"
+      className="h-screen w-screen flex flex-col bg-white relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 폭죽 효과 - 서브스턴스 스타일 */}
-      <AnimatePresence>
-        {showFireworks && (
-          <div className="fixed inset-0 pointer-events-none z-40">
-            {[...Array(30)].map((_, i) => {
-              const angle = (Math.random() - 0.5) * 120
-              const initialVelocityX = Math.sin(angle * Math.PI / 180) * (150 + Math.random() * 100)
-              const initialVelocityY = -Math.abs(Math.cos(angle * Math.PI / 180)) * (120 + Math.random() * 80)
-              const gravity = 250 + Math.random() * 150
-              const delay = Math.random() * 0.3
-              
-              return (
-                <motion.div
-                  key={`firework-${i}`}
-                  className="absolute w-1 h-1 bg-black rounded-full"
-                  style={{
-                    left: buttonPosition.x,
-                    top: buttonPosition.y,
-                  }}
-                  initial={{ 
-                    x: 0, 
-                    y: 0,
-                    scale: 0,
-                    opacity: 1
-                  }}
-                  animate={{ 
-                    x: [0, initialVelocityX * 0.3, initialVelocityX * 0.6, initialVelocityX],
-                    y: [
-                      0, 
-                      initialVelocityY * 0.5, 
-                      initialVelocityY * 0.3 + gravity * 0.1, 
-                      initialVelocityY * 0.1 + gravity
-                    ],
-                    scale: [0, 1.5, 1, 0.3],
-                    opacity: [1, 1, 0.8, 0],
-                  }}
-                  transition={{ 
-                    duration: 2 + Math.random() * 1,
-                    ease: [0.25, 0.46, 0.45, 0.94],
-                    delay: delay
-                  }}
-                />
-              )
-            })}
-          </div>
-        )}
-      </AnimatePresence>
-      
-      {/* 뒤로가기 버튼 */}
+      {/* 뒤로가기 버튼 - 모바일 안전 영역 고려 */}
       <motion.button
         onClick={() => navigate('/')}
-        className="absolute top-8 left-8 w-10 h-10 flex items-center justify-center border border-black rounded-full text-sm font-light hover:bg-black hover:text-white transition-colors z-10"
+        className="absolute top-4 left-4 w-10 h-10 flex items-center justify-center border border-black rounded-full text-sm font-light hover:bg-black hover:text-white transition-colors z-50"
+        style={{
+          top: 'max(1rem, env(safe-area-inset-top))',
+          left: 'max(1rem, env(safe-area-inset-left))'
+        }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         whileTap={{ scale: 0.9 }}
@@ -273,218 +151,216 @@ export default function ChillGame() {
         ←
       </motion.button>
       
-      {/* 당첨자 텍스트 */}
-      <AnimatePresence>
-        {showWinnerText && winner && (
-          <motion.div
-            className="absolute top-1/4 left-1/2 transform -translate-x-1/2 text-center z-30"
-            initial={{ opacity: 0, y: 30, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -30, scale: 0.8 }}
-            transition={{ 
-              type: "spring", 
-              stiffness: 400,
-              damping: 25,
-              delay: 0.1 
-            }}
-          >
-            <motion.p 
-              className="text-sm font-light tracking-[0.4em] text-gray-600 mb-6 uppercase"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              WINNER
-            </motion.p>
-            
-            <motion.h2 
-              className="text-5xl md:text-6xl font-black text-black"
-              style={{ 
-                fontVariantNumeric: 'tabular-nums',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-                filter: isWinner ? 'drop-shadow(0 0 20px rgba(255, 204, 0, 0.3))' : 'none'
-              }}
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ 
-                opacity: 1, 
-                scale: 1,
-              }}
-              transition={{ 
-                delay: 0.5, 
-                type: "spring",
-                stiffness: 300
-              }}
-            >
-              {winner}
-            </motion.h2>
-            
-            {/* 당첨자 하단 라인 */}
-            <motion.div
-              className="w-16 h-0.5 bg-yellow-500 mx-auto mt-4"
-              initial={{ width: 0 }}
-              animate={{ width: 64 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* 내 번호 - 미니멀 타이포그래피 */}
+      {/* 게임 타입 인디케이터 - 모바일 안전 영역 고려 */}
       <motion.div
-        className="mb-16"
-        animate={{ 
-          scale: isGlowing ? 1.1 : 1,
+        className="absolute top-4 right-4"
+        style={{
+          top: 'max(1rem, env(safe-area-inset-top))',
+          right: 'max(1rem, env(safe-area-inset-right))'
         }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
       >
-        <motion.h2
-          className={`text-8xl md:text-9xl font-black transition-colors duration-200 ${
-            isGlowing ? 'text-black' : 'text-gray-200'
-          }`}
-          style={{
-            fontVariantNumeric: 'tabular-nums',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            filter: isGlowing 
-              ? 'drop-shadow(0 0 30px rgba(255, 204, 0, 0.4))' 
-              : 'none',
-          }}
-          animate={{
-            letterSpacing: isGlowing ? '0.1em' : '0.05em'
+        <motion.div
+          className="px-4 py-2 border border-black rounded-full"
+          whileHover={{ 
+            backgroundColor: '#000000',
+            color: '#ffffff'
           }}
         >
-          {myIndex + 1}
-        </motion.h2>
+          <span className="text-xs font-light tracking-[0.3em] uppercase">
+            {room.game_type}
+          </span>
+        </motion.div>
       </motion.div>
       
-      {/* 중앙 인터랙션 영역 - 서브스턴스 스타일 */}
+      {/* 상단 방 정보 */}
       <motion.div
-        ref={buttonRef}
-        className="w-32 h-32 md:w-40 md:h-40 rounded-full relative border-2"
-        animate={{ 
-          scale: isGlowing ? 1.2 : 1
-        }}
-        transition={{ duration: 0.3, type: "spring", stiffness: 200 }}
-        style={{
-          backgroundColor: isGlowing ? '#ffcc00' : 'transparent',
-          borderColor: isGlowing ? '#ffcc00' : '#e5e5e5',
-          boxShadow: isGlowing 
-            ? '0 0 60px rgba(255, 204, 0, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.2)' 
-            : '0 0 20px rgba(0, 0, 0, 0.05)'
-        }}
-      >
-        {/* 발광 링 효과 */}
-        <AnimatePresence>
-          {isGlowing && (
-            <>
-              {[...Array(3)].map((_, i) => (
-                <motion.div
-                  key={`ring-${i}`}
-                  className="absolute inset-0 rounded-full border"
-                  style={{ borderColor: '#ffcc00' }}
-                  initial={{ scale: 1, opacity: 0.4 }}
-                  animate={{ 
-                    scale: [1, 1.5 + i * 0.3, 2 + i * 0.3],
-                    opacity: [0.4, 0.2, 0]
-                  }}
-                  transition={{ 
-                    duration: 1.2 + i * 0.2,
-                    repeat: Infinity,
-                    ease: "easeOut",
-                    delay: i * 0.15
-                  }}
-                />
-              ))}
-              
-              {/* 중앙 코어 */}
-              <motion.div
-                className="absolute inset-8 rounded-full bg-white"
-                animate={{ 
-                  opacity: [0.6, 1, 0.6],
-                  scale: [0.9, 1.1, 0.9]
-                }}
-                transition={{ 
-                  duration: 1,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-            </>
-          )}
-        </AnimatePresence>
-      </motion.div>
-      
-      {/* 참가자 수 표시 */}
-      <motion.div
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center"
-        initial={{ y: 30, opacity: 0 }}
+        className="flex-shrink-0 text-center px-4 pt-20 pb-8"
+        initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.2 }}
       >
-        <p className="text-xs font-light tracking-[0.3em] text-gray-500 uppercase">
-          {room.participants.length} PLAYERS
-        </p>
+        <motion.p 
+          className="text-xs font-light tracking-[0.4em] mb-4 text-gray-500 uppercase"
+        >
+          ROOM
+        </motion.p>
+        <motion.h1 
+          className="text-5xl md:text-6xl font-black tracking-[0.3em] text-black mb-6"
+          style={{ 
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            fontVariantNumeric: 'tabular-nums'
+          }}
+        >
+          {room.id}
+        </motion.h1>
+        
+        {/* 게임 타입별 색상 인디케이터 라인 */}
+        <motion.div
+          className="w-16 h-0.5 mx-auto"
+          style={{ 
+            backgroundColor: room.game_type === 'fresh' ? '#ff0000' : '#ffcc00' 
+          }}
+          initial={{ width: 0 }}
+          animate={{ width: 64 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+        />
       </motion.div>
       
-      {/* 게임 결과 오버레이 */}
-      <AnimatePresence>
-        {winner && (
-          <motion.div 
-            className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-95 z-50 p-6"
+      {/* 중앙 참가자 목록 */}
+      <motion.div 
+        className="flex-1 flex flex-col justify-center px-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+      >
+        <motion.div className="max-w-sm mx-auto w-full">
+          <motion.h2 
+            className="text-sm font-light tracking-[0.3em] text-center text-gray-600 mb-8 uppercase"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ delay: 3 }}
+            transition={{ delay: 0.6 }}
           >
-            <motion.div 
-              className="text-center max-w-sm w-full"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ 
-                type: "spring", 
-                stiffness: 200,
-                damping: 20,
-                delay: 3.2 
+            PLAYERS ({room.participants.length})
+          </motion.h2>
+          
+          <div className="space-y-4">
+            <AnimatePresence>
+              {room.participants.map((participant, index) => (
+                <motion.div
+                  key={participant.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ delay: index * 0.1 + 0.8 }}
+                  style={{
+                    backgroundColor: index === myParticipantIndex ? '#f8f8f8' : '#f5f5f5',
+                    borderColor: index === myParticipantIndex ? '#000000' : '#e5e5e5'
+                  }}
+                >
+                  <div className="flex items-center space-x-4">
+                    <motion.div 
+                      className="w-10 h-10 rounded-full border flex items-center justify-center text-sm font-light"
+                      style={{
+                        backgroundColor: index === myParticipantIndex ? '#000000' : 'transparent',
+                        color: index === myParticipantIndex ? '#ffffff' : '#000000',
+                        borderColor: '#000000'
+                      }}
+                    >
+                      {index + 1}
+                    </motion.div>
+                    <div>
+                      <p className="text-lg font-light tracking-[0.1em] text-black">
+                        {participant.name}
+                      </p>
+                      {participant.id === room.host_id && (
+                        <p className="text-xs font-light tracking-[0.2em] text-gray-500 uppercase">
+                          HOST
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {index === myParticipantIndex && (
+                    <motion.div 
+                      className="w-2 h-2 rounded-full bg-green-500"
+                      animate={{ 
+                        scale: [1, 1.2, 1],
+                        opacity: [0.7, 1, 0.7]
+                      }}
+                      transition={{ 
+                        duration: 2, 
+                        repeat: Infinity 
+                      }}
+                    />
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      </motion.div>
+      
+      {/* 하단 액션 영역 - 모바일 안전 영역 고려 */}
+      <motion.div 
+        className="flex-shrink-0 px-4 pb-4"
+        style={{
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))'
+        }}
+        initial={{ y: 30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 1 }}
+      >
+        {isHost ? (
+          <motion.div className="max-w-sm mx-auto w-full">
+            {!canStartGame && (
+              <motion.p 
+                className="text-xs font-light tracking-[0.2em] text-center text-gray-500 mb-4 uppercase"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                WAITING FOR PLAYERS
+              </motion.p>
+            )}
+            
+            <motion.button
+              onClick={startGame}
+              disabled={!canStartGame}
+              className={`w-full py-4 text-lg font-light tracking-[0.3em] rounded-lg transition-all duration-300 uppercase ${
+                canStartGame
+                  ? 'bg-black text-white hover:bg-gray-800'
+                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+              }`}
+              whileHover={canStartGame ? { scale: 1.02 } : {}}
+              whileTap={canStartGame ? { scale: 0.98 } : {}}
+              animate={{
+                boxShadow: canStartGame 
+                  ? '0 10px 30px rgba(0, 0, 0, 0.2)' 
+                  : '0 5px 15px rgba(0, 0, 0, 0.1)'
               }}
             >
-              <motion.div
-                className="flex flex-col gap-6 items-center justify-center"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 3.5 }}
-              >
-                {isWinner && (
-                  <button
-                    onClick={resetGame}
-                    className="w-full text-lg font-light tracking-[0.2em] px-8 py-4 bg-black text-white rounded-lg hover:bg-gray-800 transition-all duration-300 uppercase"
-                  >
-                    PLAY AGAIN
-                  </button>
-                )}
-                
-                <button
-                  onClick={() => navigate('/')}
-                  className="w-full text-lg font-light tracking-[0.2em] px-8 py-4 border border-black text-black rounded-lg hover:bg-black hover:text-white transition-all duration-300 uppercase"
-                >
-                  NEW GAME
-                </button>
-              </motion.div>
-            </motion.div>
+              START GAME
+            </motion.button>
+          </motion.div>
+        ) : (
+          <motion.div className="max-w-sm mx-auto w-full text-center">
+            <motion.p 
+              className="text-sm font-light tracking-[0.2em] text-gray-600 uppercase"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              WAITING FOR HOST
+            </motion.p>
           </motion.div>
         )}
-      </AnimatePresence>
+      </motion.div>
       
       {/* 배경 기하학적 요소들 */}
       <motion.div
-        className="absolute top-1/4 left-8 w-px h-20 bg-gray-200"
+        className="absolute top-1/3 left-4 w-px h-16 md:h-20 bg-gray-200"
         initial={{ height: 0 }}
-        animate={{ height: 80 }}
-        transition={{ delay: 1, duration: 0.8 }}
+        animate={{ height: window.innerWidth < 768 ? 64 : 80 }}
+        transition={{ delay: 1.5, duration: 0.8 }}
       />
       <motion.div
-        className="absolute bottom-1/4 right-8 w-px h-20 bg-gray-200"
+        className="absolute bottom-1/3 right-4 w-px h-16 md:h-20 bg-gray-200"
         initial={{ height: 0 }}
-        animate={{ height: 80 }}
-        transition={{ delay: 1.2, duration: 0.8 }}
+        animate={{ height: window.innerWidth < 768 ? 64 : 80 }}
+        transition={{ delay: 1.7, duration: 0.8 }}
+      />
+      
+      {/* 미세한 그리드 패턴 */}
+      <div
+        className="absolute inset-0 opacity-5"
+        style={{
+          backgroundImage: `
+            linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px'
+        }}
       />
     </motion.div>
   )
