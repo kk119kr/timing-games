@@ -84,9 +84,6 @@ export default function ChillGame() {
       if (data.host_id === userId && !data.game_state.winner) {
         startGlowSequence(data)
       }
-      
-      // PeerJS 초기화 (현재는 사용되지 않으므로 주석 처리)
-      // peerManager.current = new GamePeerManager(userId, data.host_id === userId)
     } catch (error) {
       console.error('게임 초기화 실패:', error)
       navigate('/')
@@ -96,41 +93,34 @@ export default function ChillGame() {
   const startGlowSequence = async (roomData: GameRoom) => {
     if (!roomId) return
     
-    let currentIndex = -1 // -1부터 시작하여 첫 번째 실행에서 0이 됨
-    let speed = 800 // 시작 속도 (느리게 시작)
+    let currentIndex = -1
+    let speed = 800
     let rounds = 0
-    let stepCount = 0 // 전체 스텝 카운트
-    const minRounds = 5 // 최소 5바퀴
+    let stepCount = 0
+    const minRounds = 5
     const totalParticipants = roomData.participants.length
     
     if (totalParticipants === 0) return
     
     const runGlow = async () => {
-      // 다음 참가자로 이동
       currentIndex = (currentIndex + 1) % totalParticipants
       stepCount++
       
       try {
-        // 상태 업데이트
         await updateGameState(roomId, { glowing_index: currentIndex })
         
-        // 한 바퀴 돌았을 때 (0번 인덱스로 돌아왔을 때)
         if (currentIndex === 0 && rounds > 0) {
           rounds++
         } else if (currentIndex === 0) {
-          rounds = 1 // 첫 바퀴 완료
+          rounds = 1
         }
         
-        // 점진적 가속 (매 스텝마다 조금씩 빨라짐)
-        speed = Math.max(60, speed * 0.97) // 더 부드러운 가속
+        speed = Math.max(60, speed * 0.97)
         
-        // 최소 5바퀴 이상 돌고 확률적으로 멈춤
         if (rounds >= minRounds && stepCount > minRounds * totalParticipants) {
-          // 속도가 충분히 빨라진 후 멈출 확률 증가
           const stopProbability = speed < 150 ? 0.15 : 0.05
           
           if (Math.random() < stopProbability) {
-            // 게임 종료! 현재 위치의 참가자가 승리
             if (glowInterval.current) {
               clearInterval(glowInterval.current)
               glowInterval.current = null
@@ -145,7 +135,6 @@ export default function ChillGame() {
           }
         }
         
-        // 다음 실행 예약
         glowInterval.current = setTimeout(runGlow, speed)
       } catch (error) {
         console.error('게임 상태 업데이트 실패:', error)
@@ -156,22 +145,17 @@ export default function ChillGame() {
       }
     }
     
-    // 첫 실행
     glowInterval.current = setTimeout(runGlow, speed)
   }
   
   const handleWinner = (winnerName: string) => {
     setWinner(winnerName)
     
-    // 당첨자인 경우 특별 효과
     if (room?.participants[myIndex]?.name === winnerName) {
-      console.log('당첨! 불꽃놀이 시작') // 디버깅용
       setShowFireworks(true)
       navigator.vibrate?.([200, 100, 200, 100, 300])
       
-      // 5초 후 불꽃놀이 효과 종료
       setTimeout(() => {
-        console.log('불꽃놀이 종료') // 디버깅용
         setShowFireworks(false)
       }, 5000)
     }
@@ -195,8 +179,14 @@ export default function ChillGame() {
   
   if (!room || myIndex === -1) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-2xl font-medium text-gray-600">로딩 중...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <motion.div
+          className="text-xl md:text-2xl font-light tracking-[0.2em] text-gray-600"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          LOADING
+        </motion.div>
       </div>
     )
   }
@@ -205,29 +195,29 @@ export default function ChillGame() {
   
   return (
     <motion.div 
-      className="h-screen flex flex-col items-center justify-center bg-gray-100 p-8 relative overflow-hidden"
+      className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6 relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 불꽃놀이 효과 - 포물선 애니메이션 */}
+      {/* 불꽃놀이 효과 */}
       <AnimatePresence>
         {showFireworks && (
           <div className="fixed inset-0 pointer-events-none z-40">
-            {[...Array(24)].map((_, i) => {
-              const angle = (i * 15) - 90 // 더 조밀한 분산
-              const velocity = 60 + Math.random() * 80
-              const gravity = 400
+            {[...Array(30)].map((_, i) => {
+              const angle = (i * 12) - 90
+              const velocity = 80 + Math.random() * 100
+              const hue = Math.random() * 60 + 20 // 따뜻한 색상
               
               return (
                 <motion.div
                   key={`firework-${i}`}
-                  className="absolute w-4 h-4 bg-yellow-400 rounded-full shadow-lg"
+                  className="absolute w-2 h-2 rounded-full"
                   style={{
                     left: '50%',
                     top: '50%',
                     transform: 'translate(-50%, -50%)',
-                    boxShadow: '0 0 12px rgba(255, 255, 0, 0.8)'
+                    backgroundColor: `hsl(${hue}, 100%, 60%)`
                   }}
                   initial={{ 
                     x: 0, 
@@ -236,19 +226,19 @@ export default function ChillGame() {
                     opacity: 1
                   }}
                   animate={{ 
-                    x: Math.cos(angle * Math.PI / 180) * velocity * 3,
+                    x: Math.cos(angle * Math.PI / 180) * velocity * 4,
                     y: [
                       0,
-                      Math.sin(angle * Math.PI / 180) * velocity * 1.5,
-                      Math.sin(angle * Math.PI / 180) * velocity * 1.5 + gravity
+                      Math.sin(angle * Math.PI / 180) * velocity * 2,
+                      Math.sin(angle * Math.PI / 180) * velocity * 2 + 500
                     ],
-                    scale: [0, 1.2, 0.3],
+                    scale: [0, 1.5, 0],
                     opacity: [1, 1, 0]
                   }}
                   transition={{ 
-                    duration: 2.5 + Math.random() * 0.5,
+                    duration: 3 + Math.random() * 0.5,
                     ease: "easeOut",
-                    delay: i * 0.05
+                    delay: i * 0.03
                   }}
                 />
               )
@@ -257,114 +247,168 @@ export default function ChillGame() {
         )}
       </AnimatePresence>
       
-      {/* 내 번호 표시 */}
-      <div className="absolute top-8 left-1/2 -translate-x-1/2">
-        <motion.p 
-          className={`text-6xl font-bold transition-colors duration-300 ${
-            isGlowing ? 'text-yellow-400' : 'text-gray-300'
+      {/* 상단 게임 타입 */}
+      <motion.div
+        className="absolute top-8 md:top-12 left-1/2 transform -translate-x-1/2"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+      >
+        <h1 className="text-2xl md:text-3xl font-thin tracking-[0.3em] text-gray-800">
+          CHILL
+        </h1>
+      </motion.div>
+      
+      {/* 내 번호 - 큰 타이포그래피 */}
+      <motion.div
+        className="mb-12 md:mb-16"
+        animate={{ 
+          scale: isGlowing ? 1.1 : 1,
+          filter: isGlowing ? 'brightness(1.2)' : 'brightness(1)'
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      >
+        <motion.h2
+          className={`text-8xl md:text-9xl font-thin transition-colors duration-300 ${
+            isGlowing ? 'text-black' : 'text-gray-400'
           }`}
-          animate={{ 
-            opacity: isGlowing ? 1 : 0.4,
+          style={{
+            fontVariantNumeric: 'tabular-nums',
             textShadow: isGlowing 
-              ? '0 0 20px rgba(255, 255, 0, 0.8), 0 0 40px rgba(255, 255, 0, 0.5)' 
+              ? '0 0 40px rgba(0, 0, 0, 0.3)' 
               : 'none'
+          }}
+          animate={{
+            letterSpacing: isGlowing ? '0.1em' : '0.05em'
           }}
         >
           {myIndex + 1}
-        </motion.p>
-      </div>
+        </motion.h2>
+      </motion.div>
       
-      {/* 메인 버튼 */}
+      {/* 중앙 인터랙션 영역 */}
       <motion.div
-        layoutId="game-button"
-        className="relative"
-        animate={{ scale: isGlowing ? 1.15 : 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        className="w-32 h-32 md:w-40 md:h-40 rounded-full relative"
+        animate={{ 
+          scale: isGlowing ? 1.1 : 1,
+          backgroundColor: isGlowing ? '#000000' : '#e5e7eb'
+        }}
+        transition={{ duration: 0.3 }}
+        style={{
+          boxShadow: isGlowing 
+            ? '0 0 80px rgba(0, 0, 0, 0.4)' 
+            : '0 10px 30px rgba(0, 0, 0, 0.1)'
+        }}
       >
-        <motion.div 
-          className="w-64 h-64 rounded-full shadow-2xl bg-gray-300"
-          animate={{
-            backgroundColor: isGlowing ? '#fbbf24' : '#d1d5db', // 노란색 vs 회색
-            boxShadow: isGlowing 
-              ? '0 0 60px rgba(251, 191, 36, 0.8), 0 0 120px rgba(251, 191, 36, 0.4), 0 0 180px rgba(251, 191, 36, 0.2)' 
-              : '0 25px 50px -12px rgba(0,0,0,0.25)',
-            scale: isGlowing ? 1.05 : 1
-          }}
-          transition={{ duration: 0.3 }}
-        />
-        
         {/* 발광 링 효과 */}
         <AnimatePresence>
           {isGlowing && (
-            <motion.div
-              className="absolute inset-0 rounded-full border-4 border-yellow-300"
-              initial={{ scale: 1, opacity: 0.8 }}
-              animate={{ 
-                scale: [1, 1.3, 1.6],
-                opacity: [0.8, 0.4, 0]
-              }}
-              transition={{ 
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "easeOut"
-              }}
-            />
+            <>
+              <motion.div
+                className="absolute inset-0 rounded-full border border-black"
+                initial={{ scale: 1, opacity: 0.6 }}
+                animate={{ 
+                  scale: [1, 1.8, 2.5],
+                  opacity: [0.6, 0.2, 0]
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeOut"
+                }}
+              />
+              <motion.div
+                className="absolute inset-0 rounded-full border border-black"
+                initial={{ scale: 1, opacity: 0.4 }}
+                animate={{ 
+                  scale: [1, 2, 3],
+                  opacity: [0.4, 0.1, 0]
+                }}
+                transition={{ 
+                  duration: 2.5,
+                  repeat: Infinity,
+                  ease: "easeOut",
+                  delay: 0.5
+                }}
+              />
+            </>
           )}
         </AnimatePresence>
       </motion.div>
       
-      {/* 미니멀 당첨 팝업 */}
+      {/* 하단 참가자 정보 */}
+      <motion.div
+        className="absolute bottom-8 md:bottom-12 left-1/2 transform -translate-x-1/2 text-center"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.5 }}
+      >
+        <p className="text-sm md:text-base font-light tracking-[0.15em] text-gray-600">
+          {room.participants.length} PLAYERS
+        </p>
+      </motion.div>
+      
+      {/* 당첨 결과 - 전체 화면 오버레이 */}
       <AnimatePresence>
         {winner && (
           <motion.div 
-            className="fixed inset-0 flex items-center justify-center pointer-events-none z-50"
+            className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-95 z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div 
-              className="bg-white border-2 border-black p-16 relative"
-              style={{ fontFamily: 'SF Pro Display, -apple-system, sans-serif' }}
-              initial={{ scale: 0, opacity: 0 }}
+              className="text-center"
+              initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ 
                 type: "spring", 
-                stiffness: 300,
-                damping: 25,
+                stiffness: 200,
+                damping: 20,
                 delay: 0.2 
               }}
             >
-              <div className="text-center">
-                <motion.h2 
-                  className="text-xl font-medium tracking-wide mb-8 text-gray-600 uppercase"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  Winner
-                </motion.h2>
-                <motion.p 
-                  className="text-6xl font-light tracking-tight text-black"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.6, type: "spring" }}
-                >
-                  {winner}
-                </motion.p>
-                
-                {/* 리셋 버튼 (당첨자만 보임) */}
+              <motion.p 
+                className="text-sm md:text-base tracking-[0.3em] text-gray-500 mb-4 md:mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                WINNER
+              </motion.p>
+              
+              <motion.h2 
+                className="text-6xl md:text-8xl font-thin text-black mb-8 md:mb-12"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6, type: "spring" }}
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {winner}
+              </motion.h2>
+              
+              {/* 액션 버튼들 */}
+              <motion.div
+                className="flex flex-col md:flex-row gap-4 md:gap-8 items-center justify-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+              >
                 {isWinner && (
-                  <motion.button
+                  <button
                     onClick={resetGame}
-                    className="mt-12 border border-black text-black px-8 py-3 font-medium tracking-wide pointer-events-auto hover:bg-black hover:text-white transition-all duration-200"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1 }}
+                    className="text-sm md:text-base tracking-[0.15em] font-light border-b border-black pb-1 hover:opacity-70 transition-opacity"
                   >
-                    다시 시작
-                  </motion.button>
+                    PLAY AGAIN
+                  </button>
                 )}
-              </div>
+                
+                <button
+                  onClick={() => navigate('/')}
+                  className="text-sm md:text-base tracking-[0.15em] font-light border-b border-gray-400 pb-1 hover:opacity-70 transition-opacity text-gray-600"
+                >
+                  NEW GAME
+                </button>
+              </motion.div>
             </motion.div>
           </motion.div>
         )}
@@ -373,19 +417,13 @@ export default function ChillGame() {
       {/* 홈 버튼 */}
       <motion.button
         onClick={() => navigate('/')}
-        className="absolute top-8 right-8 w-12 h-12 bg-black rounded-full flex items-center justify-center group"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
+        className="absolute top-6 right-6 md:top-8 md:right-8 text-sm tracking-[0.15em] font-light opacity-70 hover:opacity-100 transition-opacity"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.7 }}
+        whileTap={{ scale: 0.95 }}
       >
-        <div className="w-5 h-0.5 bg-white group-hover:bg-gray-300 transition-colors" />
+        HOME
       </motion.button>
-      
-      {/* 참가자 수 표시 */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-        <p className="text-lg font-medium text-gray-600">
-          참가자: {room.participants.length}명
-        </p>
-      </div>
     </motion.div>
   )
 }

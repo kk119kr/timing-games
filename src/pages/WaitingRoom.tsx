@@ -10,22 +10,21 @@ export default function WaitingRoom() {
   const [room, setRoom] = useState<GameRoom | null>(null)
   const [isHost, setIsHost] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [canStart, setCanStart] = useState(false)
   
   useEffect(() => {
     if (!roomId) return
     
-    // 방 정보 가져오기
     fetchRoom()
     
-    // 실시간 구독
     const subscription = subscribeToRoom(roomId, (payload) => {
       console.log('Room update received:', payload)
       
       if (payload.eventType === 'UPDATE' && payload.new) {
         const updatedRoom = payload.new as GameRoom
         setRoom(updatedRoom)
+        setCanStart(updatedRoom.participants.length >= 2)
         
-        // 게임 시작 감지 - 모든 참가자가 이동
         if (updatedRoom.status === 'playing') {
           console.log('Game started, navigating to:', `/game/${updatedRoom.game_type}/${roomId}`)
           navigate(`/game/${updatedRoom.game_type}/${roomId}`)
@@ -36,7 +35,7 @@ export default function WaitingRoom() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [roomId, navigate])  // navigate 추가
+  }, [roomId, navigate])
   
   const fetchRoom = async () => {
     try {
@@ -50,23 +49,21 @@ export default function WaitingRoom() {
       if (!data) throw new Error('Room not found')
       
       setRoom(data)
+      setCanStart(data.participants.length >= 2)
       
-      // 현재 사용자 ID 확인
       const userId = localStorage.getItem('userId') || `user_${Date.now()}`
       localStorage.setItem('userId', userId)
       
-      // 이미 참가자인지 확인
       const isAlreadyJoined = data.participants.some((p: any) => p.id === userId)
       
-      // 호스트인지 확인
       if (data.host_id === userId) {
         setIsHost(true)
         console.log('You are the host')
       } else if (!isAlreadyJoined) {
-        // 참가자로 추가 (호스트가 아니고 아직 참가하지 않은 경우)
         console.log('Joining room as participant...')
         const updatedRoom = await joinRoom(roomId!, userId)
         setRoom(updatedRoom)
+        setCanStart(updatedRoom.participants.length >= 2)
       }
       
       setLoading(false)
@@ -77,7 +74,7 @@ export default function WaitingRoom() {
   }
   
   const startGame = async () => {
-    if (!isHost || !room) return
+    if (!isHost || !room || !canStart) return
     
     console.log('Starting game...', room.game_type)
     
@@ -91,7 +88,6 @@ export default function WaitingRoom() {
         console.error('게임 시작 실패:', error)
       } else {
         console.log('Game started successfully')
-        // 직접 게임 화면으로 이동
         navigate(`/game/${room.game_type}/${roomId}`)
       }
     } catch (error) {
@@ -101,104 +97,176 @@ export default function WaitingRoom() {
   
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-100">
-        <motion.div 
-          className="w-16 h-16 bg-black rounded-full"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <motion.div
+          className="text-xl md:text-2xl font-light tracking-[0.2em] text-gray-600"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          LOADING
+        </motion.div>
       </div>
     )
   }
   
   return (
     <motion.div 
-      className="h-screen flex flex-col bg-gray-100 p-8"
+      className="min-h-screen flex flex-col bg-gray-100 p-6 relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 헤더 */}
-      <div className="flex justify-between items-start mb-12">
+      {/* 상단 헤더 */}
+      <motion.div
+        className="flex justify-between items-start mb-12 md:mb-16"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+      >
         <div>
-          <h1 className="text-4xl font-bold tracking-tight uppercase">{room?.game_type}</h1>
-          <p className="text-sm text-gray-500 mt-2">ROOM {roomId}</p>
+          <h1 className="text-4xl md:text-6xl font-thin tracking-[0.2em] text-black uppercase mb-2">
+            {room?.game_type}
+          </h1>
+          <p className="text-sm md:text-base font-light tracking-[0.15em] text-gray-500">
+            ROOM {roomId}
+          </p>
         </div>
         
         {/* 홈 버튼 */}
         <motion.button
           onClick={() => navigate('/')}
-          className="w-10 h-10 bg-black rounded-full flex items-center justify-center"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+          className="text-sm tracking-[0.15em] font-light opacity-70 hover:opacity-100 transition-opacity"
+          whileTap={{ scale: 0.95 }}
         >
-          <div className="w-4 h-0.5 bg-white" />
+          HOME
         </motion.button>
-      </div>
+      </motion.div>
       
-      {/* 참가자 리스트 */}
+      {/* 참가자 섹션 */}
       <div className="flex-1">
-        <p className="text-sm text-gray-500 mb-4">PARTICIPANTS ({room?.participants.length})</p>
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <p className="text-sm md:text-base font-light tracking-[0.15em] text-gray-500 mb-6">
+            PLAYERS ({room?.participants.length})
+          </p>
+        </motion.div>
         
-        <AnimatePresence mode="popLayout">
-          {room?.participants.map((participant, index) => (
-            <motion.div
-              key={participant.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ delay: index * 0.1 }}
-              className="mb-4"
-            >
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-white font-bold">
+        {/* 참가자 리스트 */}
+        <div className="space-y-4 md:space-y-6">
+          <AnimatePresence mode="popLayout">
+            {room?.participants.map((participant, index) => (
+              <motion.div
+                key={participant.id}
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 30 }}
+                transition={{ 
+                  delay: index * 0.1,
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30
+                }}
+                className="flex items-center space-x-4 md:space-x-6"
+              >
+                {/* 번호 */}
+                <motion.div 
+                  className="w-8 h-8 md:w-10 md:h-10 bg-black text-white rounded-full flex items-center justify-center text-sm md:text-base font-light"
+                  whileHover={{ scale: 1.05 }}
+                  style={{ fontVariantNumeric: 'tabular-nums' }}
+                >
                   {index + 1}
-                </div>
+                </motion.div>
+                
+                {/* 참가자 정보 */}
                 <div>
-                  <p className="text-xl font-medium">{participant.name}</p>
+                  <p className="text-lg md:text-xl font-light tracking-wide text-black">
+                    {participant.name}
+                  </p>
                   {participant.id === room.host_id && (
-                    <p className="text-xs text-gray-500">HOST</p>
+                    <motion.p 
+                      className="text-xs md:text-sm tracking-[0.1em] text-gray-500 mt-1"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      HOST
+                    </motion.p>
                   )}
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
       </div>
       
-      {/* 시작 버튼 (호스트만) */}
-      {isHost && room && room.participants.length >= 2 && (
-        <motion.button
-          onClick={() => {
-            console.log('Start button clicked')
-            startGame()
-          }}
-          className="w-full py-6 bg-black text-white text-xl font-bold rounded-2xl shadow-2xl"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          START GAME
-        </motion.button>
-      )}
+      {/* 하단 액션 영역 */}
+      <div className="mt-12 md:mt-16">
+        {/* 시작 버튼 (호스트만) */}
+        {isHost && (
+          <AnimatePresence>
+            {canStart ? (
+              <motion.button
+                key="start-button"
+                onClick={startGame}
+                className="w-full py-4 md:py-6 text-lg md:text-xl font-light tracking-[0.15em] border-t border-black hover:bg-black hover:text-white transition-all duration-300"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                START GAME
+              </motion.button>
+            ) : (
+              <motion.div
+                key="waiting-message"
+                className="w-full py-4 md:py-6 text-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+              >
+                <p className="text-sm md:text-base font-light tracking-[0.15em] text-gray-500">
+                  NEED AT LEAST 2 PLAYERS
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
+        
+        {/* 대기 메시지 (참가자) */}
+        {!isHost && (
+          <motion.div
+            className="w-full py-4 md:py-6 text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <motion.p 
+              className="text-sm md:text-base font-light tracking-[0.15em] text-gray-500"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              WAITING FOR HOST
+            </motion.p>
+          </motion.div>
+        )}
+      </div>
       
-      {/* 대기 메시지 (참가자) */}
-      {!isHost && (
-        <motion.p 
-          className="text-center text-gray-500"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 2, repeat: Infinity }}
+      {/* 추가 정보 - 참가 인원이 적을 때만 표시 */}
+      {room && room.participants.length < 4 && (
+        <motion.div
+          className="absolute top-1/2 right-6 md:right-8 transform -translate-y-1/2"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 0.3, x: 0 }}
+          transition={{ delay: 1 }}
         >
-          WAITING FOR HOST TO START
-        </motion.p>
-      )}
-      
-      {/* 최소 인원 안내 */}
-      {isHost && room && room.participants.length < 2 && (
-        <p className="text-center text-gray-500">
-          NEED AT LEAST 2 PLAYERS
-        </p>
+          <p className="text-xs tracking-[0.2em] text-gray-400 writing-mode-vertical transform rotate-180">
+            SCAN QR TO JOIN
+          </p>
+        </motion.div>
       )}
     </motion.div>
   )

@@ -80,7 +80,6 @@ export default function FreshGame() {
   useEffect(() => {
     if (!roomId) return
     
-    console.log('FreshGame mounted with roomId:', roomId)
     resetGameFlags()
     initializeGame()
     
@@ -108,7 +107,6 @@ export default function FreshGame() {
       const isHost = data.host_id === userId
       localStorage.setItem('isHost', isHost.toString())
       
-      // 게임 상태 복원
       if (data.game_state?.current_round) {
         setCurrentRound(data.game_state.current_round)
       }
@@ -133,14 +131,12 @@ export default function FreshGame() {
     const gameState = newRoom.game_state
     const currentGamePhase = gamePhaseRef.current
     
-    // 카운트다운 시작 감지
     if (gameState.countdown_started && !countdownStarted.current && currentGamePhase === 'waiting') {
       countdownStarted.current = true
       startLocalCountdown()
       return
     }
     
-    // 라운드 시작 감지
     if (gameState.round_start_time && !roundStarted.current && currentGamePhase !== 'playing') {
       roundStarted.current = true
       allPressedHandled.current = false
@@ -155,13 +151,11 @@ export default function FreshGame() {
       return
     }
     
-    // playing 상태에서의 처리
     if (currentGamePhase === 'playing' && !isExploded.current && !allPressedHandled.current) {
       handlePlayingPhaseUpdate(newRoom)
       return
     }
     
-    // 라운드 종료 감지
     if (gameState.round_end && !gameState.round_start_time) {
       handleRoundEnd(newRoom)
     }
@@ -212,7 +206,6 @@ export default function FreshGame() {
   const startLocalCountdown = async () => {
     setGamePhaseWithRef('countdown')
     
-    // 3, 2, 1 카운트다운
     for (let i = 3; i > 0; i--) {
       setCountdown(i)
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -313,7 +306,7 @@ export default function FreshGame() {
   const handleExplosion = () => {
     navigator.vibrate?.(200)
     setButtonColor(100)
-    setRoundEndMessage('💥 EXPLOSION!')
+    setRoundEndMessage('EXPLOSION')
     
     setTimeout(() => setRoundEndMessage(''), 1500)
   }
@@ -336,18 +329,9 @@ export default function FreshGame() {
       
       if (fetchError) throw fetchError
       
-      // 🔍 디버깅: 점수 계산 전 참가자 상태 확인
-      console.log('🎯 BEFORE RESET - Participants for scoring:', currentRoom.participants)
-      currentRoom.participants.forEach((p: any) => {
-        console.log(`🎯 ${p.name}: has_pressed=${p.has_pressed}, press_time=${p.press_time}`)
-      })
-      
-      // ✅ 점수 계산을 먼저 수행
       const results = calculateScores(currentRoom.participants)
-      console.log('🎯 CALCULATED RESULTS:', results)
       setRoundResults(prev => [...prev, results])
       
-      // ✅ 점수 계산 후에 상태 초기화
       const resetParticipants = resetParticipantsState(currentRoom.participants)
       const currentRoundNumber = currentRoom.game_state?.current_round || currentRound
       
@@ -376,21 +360,12 @@ export default function FreshGame() {
     const gameState = newRoom.game_state
     const endedRound = gameState.current_round || currentRound
     
-    console.log('🔍 handleRoundEnd called for round', endedRound)
-    
     setGamePhaseWithRef('round-end')
     setRoundActive(false)
-    setRoundEndMessage(`ROUND ${endedRound} END`)
+    setRoundEndMessage(`ROUND ${endedRound}`)
     
     resetGameFlags()
     clearColorInterval()
-    
-    // ✅ 점수 계산은 이미 endRoundForAll()에서 처리했으므로 제거
-    // 호스트가 아닌 참가자들은 라운드 결과를 여기서 받아야 함
-    if (!isCurrentUserHost()) {
-      // 참가자는 호스트가 계산한 결과를 기다림 (별도 처리 필요시 추가)
-      console.log('🔍 Participant: waiting for score results from host')
-    }
     
     setTimeout(() => setRoundEndMessage(''), 2000)
     
@@ -419,26 +394,15 @@ export default function FreshGame() {
   }
   
   const calculateScores = (participants: any[]): RoundResult[] => {
-    console.log('🔥 CALCULATING SCORES - Input participants:', participants)
-    
-    // 각 참가자의 상태를 자세히 로그
-    participants.forEach((p: any, index: number) => {
-      console.log(`🔥 Participant ${index}: name=${p.name}, has_pressed=${p.has_pressed}, press_time=${p.press_time}`)
-    })
-    
     const pressed = participants
       .filter(p => p.has_pressed === true)
       .sort((a, b) => (a.press_time || 0) - (b.press_time || 0))
     
     const notPressed = participants.filter(p => p.has_pressed !== true)
     
-    console.log('🔥 Pressed participants:', pressed.length, pressed.map(p => p.name))
-    console.log('🔥 Not pressed participants:', notPressed.length, notPressed.map(p => p.name))
-    
     const results: RoundResult[] = []
     const totalPressed = pressed.length
     
-    // 누른 사람들 점수 계산
     pressed.forEach((p: any, index: number) => {
       let score = 0
       if (totalPressed === 1) {
@@ -453,8 +417,6 @@ export default function FreshGame() {
                index - middle
       }
       
-      console.log(`🔥 Score calculation for ${p.name}: ${score} (index: ${index}, press_time: ${p.press_time})`)
-      
       results.push({
         participantId: p.id,
         pressTime: p.press_time || 0,
@@ -462,9 +424,7 @@ export default function FreshGame() {
       })
     })
     
-    // 못 누른 사람들 -5점
     notPressed.forEach((p: any) => {
-      console.log(`🔥 Score for ${p.name}: -5 (not pressed)`)
       results.push({
         participantId: p.id,
         pressTime: -1,
@@ -472,7 +432,6 @@ export default function FreshGame() {
       })
     })
     
-    console.log('🔥 FINAL RESULTS:', results)
     return results
   }
   
@@ -517,36 +476,24 @@ export default function FreshGame() {
   const getFinalScores = () => {
     const totalScores: Record<string, number> = {}
     
-    console.log('🏆 CALCULATING FINAL SCORES')
-    console.log('🏆 All round results:', roundResults)
-    
     room?.participants.forEach((p: any) => {
       totalScores[p.id] = 0
-      console.log(`🏆 Initialized ${p.name} (${p.id}) with 0 points`)
     })
     
-    roundResults.forEach((round: RoundResult[], roundIndex: number) => {
-      console.log(`🏆 Processing round ${roundIndex + 1} results:`, round)
+    roundResults.forEach((round: RoundResult[]) => {
       round.forEach((result: RoundResult) => {
-        const participant = room?.participants.find((p: any) => p.id === result.participantId)
-        const oldScore = totalScores[result.participantId] || 0
         totalScores[result.participantId] += result.score
-        console.log(`🏆 ${participant?.name}: ${oldScore} + ${result.score} = ${totalScores[result.participantId]}`)
       })
     })
     
-    const finalResults = Object.entries(totalScores)
+    return Object.entries(totalScores)
       .map(([id, score]) => ({
         participant: room?.participants.find((p: any) => p.id === id),
         score
       }))
       .sort((a, b) => b.score - a.score)
-    
-    console.log('🏆 FINAL RANKING:', finalResults)
-    return finalResults
   }
 
-  // 점수 계산 로직을 분리한 함수
   const calculatePressedScore = (index: number, totalPressed: number) => {
     if (totalPressed === 1) return 1
     
@@ -563,88 +510,91 @@ export default function FreshGame() {
   
   return (
     <motion.div 
-      className="h-screen flex flex-col items-center justify-center bg-gray-100 p-8"
+      className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6 relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 디버그 정보 표시 */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed top-4 left-4 bg-black text-white p-3 rounded-lg text-sm z-50 font-mono">
-          <div className="text-yellow-300 font-bold mb-2">🎮 DEBUG INFO</div>
-          <div>Phase: <span className="text-green-300">{gamePhase}</span></div>
-          <div>Round: <span className="text-green-300">{currentRound}</span></div>
-          <div>Active: <span className="text-green-300">{roundActive ? 'YES' : 'NO'}</span></div>
-          <div>Countdown: <span className="text-green-300">{countdown || 'NULL'}</span></div>
-          <div>Color: <span className="text-green-300">{buttonColor.toFixed(0)}%</span></div>
-          <div>Pressed: <span className="text-green-300">{hasPressed ? 'YES' : 'NO'}</span></div>
-          <div>Host: <span className="text-green-300">{isCurrentUserHost() ? 'YES' : 'NO'}</span></div>
-          <div>Participants: <span className="text-green-300">{room?.participants.length || 0}</span></div>
-          <div>Pressed Count: <span className="text-green-300">{room?.participants.filter(p => p.has_pressed).length || 0}</span></div>
+      {/* 상단 게임 정보 */}
+      <motion.div
+        className="absolute top-8 md:top-12 left-1/2 transform -translate-x-1/2 text-center"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+      >
+        <h1 className="text-2xl md:text-3xl font-thin tracking-[0.3em] text-gray-800 mb-2">
+          FRESH
+        </h1>
+        
+        {/* 라운드 인디케이터 */}
+        <div className="flex space-x-2 justify-center">
+          {[1, 2, 3].map((round: number) => (
+            <motion.div
+              key={round}
+              className={`w-2 h-2 rounded-full transition-colors ${
+                round < currentRound ? 'bg-gray-800' :
+                round === currentRound ? 'bg-black' :
+                'bg-gray-300'
+              }`}
+              animate={{
+                scale: round === currentRound ? 1.2 : 1
+              }}
+            />
+          ))}
         </div>
-      )}
-
-      {/* 라운드 인디케이터 */}
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 flex space-x-2">
-        {[1, 2, 3].map((round: number) => (
-          <div
-            key={round}
-            className={`w-3 h-3 rounded-full transition-colors ${
-              round < currentRound ? 'bg-red-500' :
-              round === currentRound ? 'bg-green-500' :
-              'bg-gray-300'
-            }`}
-          />
-        ))}
-      </div>
+      </motion.div>
       
-      {/* 카운트다운 / 라운드 종료 메시지 */}
+      {/* 중앙 상태 메시지 */}
       <AnimatePresence mode="wait">
         {countdown && (
           <motion.div
-            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+            className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             key="countdown"
           >
-            <motion.div
-              className="text-8xl font-bold text-black"
-              animate={{ scale: [1, 1.2, 1] }}
+            <motion.h2
+              className="text-7xl md:text-8xl font-thin text-black"
+              animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 0.5 }}
+              style={{ fontVariantNumeric: 'tabular-nums' }}
             >
               {countdown}
-            </motion.div>
+            </motion.h2>
           </motion.div>
         )}
         
         {roundEndMessage && (
           <motion.div
-            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+            className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             key="roundEnd"
           >
-            <div className="text-3xl font-bold text-center text-black bg-white/80 px-6 py-3 rounded-xl">
+            <h2 className="text-2xl md:text-3xl font-thin tracking-[0.2em] text-center text-black">
               {roundEndMessage}
-            </div>
+            </h2>
           </motion.div>
         )}
       </AnimatePresence>
       
-      {/* 메인 버튼 */}
-      <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
+      {/* 메인 인터랙션 영역 */}
+      <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+        {/* 메인 버튼 */}
         <motion.div
-          layoutId="game-button"
-          animate={{ scale: hasPressed ? 0.9 : 1 }}
+          animate={{ scale: hasPressed ? 0.95 : 1 }}
+          transition={{ type: "spring", stiffness: 300 }}
         >
           <motion.button
-            className="w-64 h-64 rounded-full shadow-2xl relative overflow-hidden transition-colors duration-100"
+            className="w-40 h-40 md:w-48 md:h-48 rounded-full relative overflow-hidden transition-all duration-100"
             style={{
               backgroundColor: gamePhase === 'playing'
-                ? `rgb(${255 - Math.floor(buttonColor * 2.55)}, ${255 - Math.floor(buttonColor * 2.55)}, ${255 - Math.floor(buttonColor * 2.55)})`
-                : '#e5e7eb'
+                ? `hsl(0, ${buttonColor}%, ${100 - buttonColor * 0.3}%)`
+                : '#e5e7eb',
+              boxShadow: gamePhase === 'playing' && buttonColor > 80
+                ? `0 0 60px hsla(0, ${buttonColor}%, 50%, 0.6)`
+                : '0 10px 30px rgba(0, 0, 0, 0.1)'
             }}
             onClick={handleButtonPress}
             disabled={gamePhase !== 'playing' || hasPressed}
@@ -653,11 +603,11 @@ export default function FreshGame() {
           >
             {/* 폭발 효과 */}
             <AnimatePresence>
-              {buttonColor >= 100 && !hasPressed && (
+              {buttonColor >= 100 && (
                 <motion.div
                   className="absolute inset-0 bg-black"
                   initial={{ scale: 0 }}
-                  animate={{ scale: [1, 1.5, 2], opacity: [1, 0.5, 0] }}
+                  animate={{ scale: [1, 2], opacity: [1, 0] }}
                   transition={{ duration: 0.5 }}
                 />
               )}
@@ -665,10 +615,10 @@ export default function FreshGame() {
           </motion.button>
         </motion.div>
         
-        {/* 누른 순서 표시 */}
+        {/* 순서 표시 */}
         {pressedOrder.length > 0 && (
           <motion.div
-            className="flex flex-col gap-1 md:gap-2 mt-4 md:mt-0 max-h-60 overflow-y-auto"
+            className="flex flex-col gap-1 max-h-48 overflow-y-auto"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
           >
@@ -678,27 +628,23 @@ export default function FreshGame() {
               return (
                 <motion.div
                   key={name}
-                  className="flex items-center gap-1 md:gap-2"
+                  className="flex items-center gap-3"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <span className="text-xs text-gray-500">{index + 1}</span>
-                  <span 
-                    className={`font-mono text-xs md:text-sm ${
-                      score < 0 ? 'text-red-500 font-bold' : 
-                      score > 0 ? 'text-green-600' : 
-                      'text-gray-600'
-                    }`}
-                  >
+                  <span className="text-xs text-gray-500 w-4 text-center" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {index + 1}
+                  </span>
+                  <span className="text-sm md:text-base font-light tracking-wide min-w-12">
                     {name}
                   </span>
-                  <span className={`text-xs ${
-                    score < 0 ? 'text-red-500' : 
+                  <span className={`text-xs md:text-sm ${
+                    score < 0 ? 'text-red-600' : 
                     score > 0 ? 'text-green-600' : 
                     'text-gray-500'
-                  }`}>
-                    ({score > 0 ? '+' : ''}{score})
+                  }`} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {score > 0 ? '+' : ''}{score}
                   </span>
                 </motion.div>
               )
@@ -709,11 +655,11 @@ export default function FreshGame() {
               const notPressedCount = totalParticipants - pressedOrder.length
               return notPressedCount > 0 && gamePhase === 'playing' ? (
                 <motion.div 
-                  className="text-xs text-gray-400 mt-1"
+                  className="text-xs text-gray-400 mt-2 tracking-wide"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
-                  {notPressedCount}명 남음
+                  {notPressedCount} LEFT
                 </motion.div>
               ) : null
             })()}
@@ -725,28 +671,39 @@ export default function FreshGame() {
       <AnimatePresence>
         {showResults && (
           <motion.div
-            className="absolute inset-0 bg-gray-100 z-30 p-8"
+            className="fixed inset-0 bg-white z-30 p-6 flex flex-col"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            <h2 className="text-4xl font-bold mb-8 text-center">FINAL SCORES</h2>
+            <motion.h2 
+              className="text-3xl md:text-4xl font-thin tracking-[0.2em] text-center text-black mb-8 md:mb-12"
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+            >
+              FINAL SCORES
+            </motion.h2>
             
-            <div className="max-w-md mx-auto">
+            <div className="flex-1 max-w-md mx-auto w-full">
               {getFinalScores().map((result: any, index: number) => (
                 <motion.div
                   key={result.participant?.id}
-                  className="flex items-center justify-between mb-4"
+                  className="flex items-center justify-between mb-6 md:mb-8"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-white font-bold">
+                    <div className="w-8 h-8 md:w-10 md:h-10 bg-black text-white rounded-full flex items-center justify-center text-sm md:text-base font-light">
                       {index + 1}
                     </div>
-                    <p className="text-xl font-medium">{result.participant?.name}</p>
+                    <p className="text-lg md:text-xl font-light tracking-wide">
+                      {result.participant?.name}
+                    </p>
                   </div>
-                  <p className="text-2xl font-bold">
+                  <p 
+                    className="text-xl md:text-2xl font-light"
+                    style={{ fontVariantNumeric: 'tabular-nums' }}
+                  >
                     {result.score > 0 ? '+' : ''}{result.score}
                   </p>
                 </motion.div>
@@ -755,8 +712,10 @@ export default function FreshGame() {
             
             <motion.button
               onClick={() => navigate('/')}
-              className="w-full mt-12 py-4 bg-black text-white rounded-xl font-bold"
-              whileHover={{ scale: 1.02 }}
+              className="w-full py-4 md:py-6 text-lg md:text-xl font-light tracking-[0.15em] border-t border-gray-200 hover:bg-gray-50 transition-colors"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
               whileTap={{ scale: 0.98 }}
             >
               NEW GAME
@@ -769,11 +728,12 @@ export default function FreshGame() {
       {!showResults && (
         <motion.button
           onClick={() => navigate('/')}
-          className="absolute top-8 right-8 w-10 h-10 bg-black rounded-full flex items-center justify-center"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+          className="absolute top-6 right-6 md:top-8 md:right-8 text-sm tracking-[0.15em] font-light opacity-70 hover:opacity-100 transition-opacity"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.7 }}
+          whileTap={{ scale: 0.95 }}
         >
-          <div className="w-4 h-0.5 bg-white" />
+          HOME
         </motion.button>
       )}
     </motion.div>
