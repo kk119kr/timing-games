@@ -63,11 +63,7 @@ export function isParticipant(data: unknown): data is Participant {
          'name' in data
 }
 
-// Supabase 응답 타입 정의
-interface SupabaseResponse<T> {
-  data: T | null
-  error: Error | null
-}
+// Supabase 응답 타입은 제거 - 내장 타입 사용
 
 interface RoomUpdatePayload {
   eventType: 'INSERT' | 'UPDATE' | 'DELETE'
