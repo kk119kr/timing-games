@@ -589,7 +589,7 @@ export default function FreshGame() {
               transition={{ duration: 0.6 }}
               style={{ 
                 fontVariantNumeric: 'tabular-nums',
-                fontFamily: 'system-ui, -apple-system, sans-serif'
+                fontFamily: 'Libre Baskerville, serif'
               }}
             >
               {countdown}

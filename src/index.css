@@ -35,7 +35,7 @@ body {
   height: -webkit-fill-available;
   overflow: hidden;
   overscroll-behavior: none;
-  font-family: 'Cinzel', serif;
+  font-family: 'Libre Baskerville', serif;
   touch-action: manipulation;
   -webkit-user-select: none;
   -webkit-touch-callout: none;

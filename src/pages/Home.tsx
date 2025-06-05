@@ -85,7 +85,7 @@ export default function Home() {
         <motion.h1 
           className="text-7xl sm:text-8xl md:text-9xl lg:text-[12rem] xl:text-[14rem] font-black tracking-[0.05em]"
           style={{
-            fontFamily: 'Cinzel, serif',
+            fontFamily: 'Libre Baskerville, serif',
             fontWeight: 900,
             lineHeight: 0.8
           }}
@@ -111,7 +111,7 @@ export default function Home() {
         <motion.h1 
           className="text-7xl sm:text-8xl md:text-9xl lg:text-[12rem] xl:text-[14rem] font-black tracking-[0.05em]"
           style={{
-            fontFamily: 'Cinzel, serif',
+            fontFamily: 'Libre Baskerville, serif',
             fontWeight: 900,
             lineHeight: 0.8
           }}
