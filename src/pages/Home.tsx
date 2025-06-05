@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { motion, useMotionValue, AnimatePresence } from 'framer-motion'
+import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 
 export default function Home() {
@@ -11,8 +11,20 @@ export default function Home() {
   const y = useMotionValue(0)
   const constraintRef = useRef<HTMLDivElement>(null)
   
-  // 슬라이더 위치에 따른 현재 게임 타입
-  const currentGame = y.get() < -50 ? 'fresh' : y.get() > 50 ? 'chill' : null
+  // 드래그 위치에 따른 실시간 색상 변화
+  const backgroundOpacity = useTransform(y, [-120, -30, 30, 120], [1, 0.3, 0.3, 1])
+  const freshScale = useTransform(y, [-120, -30, 0], [1.15, 1.05, 1])
+  const chillScale = useTransform(y, [0, 30, 120], [1, 1.05, 1.15])
+  
+  // 현재 선택된 게임 (드래그 중 실시간 반응)
+  const getCurrentGame = () => {
+    const currentY = y.get()
+    if (currentY < -30) return 'fresh'
+    if (currentY > 30) return 'chill'
+    return null
+  }
+  
+  const currentGame = getCurrentGame()
   
   const handleDragEnd = (_: any, info: any) => {
     const threshold = 80
@@ -44,206 +56,151 @@ export default function Home() {
         position: 'fixed',
         top: 0,
         left: 0,
-        backgroundColor: currentGame === 'fresh' ? '#000000' : 
-                        currentGame === 'chill' ? '#000000' : '#ffffff'
       }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 상단 FRESH 영역 */}
+      {/* 동적 배경 오버레이 */}
+      <motion.div
+        className="absolute inset-0"
+        style={{
+          backgroundColor: '#000000',
+          opacity: backgroundOpacity
+        }}
+      />
+      
+      {/* 상단 FRESH 영역 - 정확히 50% */}
       <motion.div
         className="absolute top-0 left-0 right-0 flex items-center justify-center"
         style={{
-          height: 'calc(50vh - env(safe-area-inset-top, 0px))',
-          paddingTop: 'max(2rem, env(safe-area-inset-top, 0px))'
+          height: '50vh',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)'
         }}
         initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
         <motion.h1 
-          className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-[0.3em] px-4"
+          className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-[0.2em]"
           style={{
             color: currentGame === 'fresh' ? '#ff0000' : 
                    currentGame === 'chill' ? '#ffffff' : '#000000',
             fontFamily: 'system-ui, -apple-system, sans-serif',
+            scale: freshScale
           }}
-          animate={{
-            scale: currentGame === 'fresh' ? 1.1 : 1,
-            y: currentGame === 'fresh' ? -10 : 0
-          }}
-          transition={{ duration: 0.3 }}
         >
           FRESH
         </motion.h1>
       </motion.div>
       
-      {/* 하단 CHILL 영역 */}
+      {/* 하단 CHILL 영역 - 정확히 50% */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 flex items-center justify-center"
         style={{
-          height: 'calc(50vh - env(safe-area-inset-bottom, 0px))',
-          paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 0px))'
+          height: '50vh',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)'
         }}
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
         <motion.h1 
-          className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-[0.3em] px-4"
+          className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-[0.2em]"
           style={{
             color: currentGame === 'chill' ? '#ffcc00' : 
                    currentGame === 'fresh' ? '#ffffff' : '#000000',
             fontFamily: 'system-ui, -apple-system, sans-serif',
+            scale: chillScale
           }}
-          animate={{
-            scale: currentGame === 'chill' ? 1.1 : 1,
-            y: currentGame === 'chill' ? 10 : 0
-          }}
-          transition={{ duration: 0.3 }}
         >
           CHILL
         </motion.h1>
       </motion.div>
       
-      {/* 상단 곡선 인디케이터 */}
-      <motion.div
-        className="absolute left-1/2 transform -translate-x-1/2"
-        style={{
-          top: 'max(1.5rem, env(safe-area-inset-top, 0px))'
-        }}
-        animate={{
-          opacity: [0.3, 1, 0.3],
-        }}
-        transition={{ 
-          duration: 2, 
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      >
-        <svg width="24" height="20" viewBox="0 0 24 20" fill="none">
-          <path 
-            d="M3 17 C7 5, 17 5, 21 17" 
-            stroke={currentGame ? '#ffffff' : '#000000'} 
-            strokeWidth="2" 
-            fill="none"
-            strokeLinecap="round"
-          />
-          <path 
-            d="M5 15 C8 8, 16 8, 19 15" 
-            stroke={currentGame ? '#ffffff' : '#000000'} 
-            strokeWidth="1.5" 
-            fill="none"
-            strokeLinecap="round"
-            opacity="0.6"
-          />
-        </svg>
-      </motion.div>
-      
-      {/* 하단 곡선 인디케이터 */}
-      <motion.div
-        className="absolute left-1/2 transform -translate-x-1/2"
-        style={{
-          bottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))'
-        }}
-        animate={{
-          opacity: [0.3, 1, 0.3],
-        }}
-        transition={{ 
-          duration: 2, 
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 1
-        }}
-      >
-        <svg width="24" height="20" viewBox="0 0 24 20" fill="none" className="rotate-180">
-          <path 
-            d="M3 17 C7 5, 17 5, 21 17" 
-            stroke={currentGame ? '#ffffff' : '#000000'} 
-            strokeWidth="2" 
-            fill="none"
-            strokeLinecap="round"
-          />
-          <path 
-            d="M5 15 C8 8, 16 8, 19 15" 
-            stroke={currentGame ? '#ffffff' : '#000000'} 
-            strokeWidth="1.5" 
-            fill="none"
-            strokeLinecap="round"
-            opacity="0.6"
-          />
-        </svg>
-      </motion.div>
-      
-      {/* 중앙 슬라이더 트랙 */}
+      {/* 중앙 미니멀 슬라이더 */}
       <motion.div
         ref={constraintRef}
         className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20"
       >
-        {/* 슬라이더 트랙 컨테이너 (iPhone 볼륨 스타일) */}
+        {/* 슬라이더 트랙 - 더 미니멀하게 */}
         <motion.div
-          className="relative w-12 h-64 rounded-full"
+          className="relative w-2 h-48 mx-auto"
           style={{
-            backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
-            border: `1px solid ${currentGame ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
+            backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+            borderRadius: '4px'
           }}
         >
-          {/* 트랙 내부 음영 */}
-          <motion.div
-            className="absolute inset-1 rounded-full"
-            style={{
-              background: currentGame ? 
-                'linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%)' :
-                'linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.01) 100%)'
-            }}
-          />
-          
-          {/* 드래그 가능한 슬라이더 버튼 */}
+          {/* 드래그 버튼 - 완전히 새로운 디자인 */}
           <motion.div
             drag="y"
-            dragConstraints={{ top: -120, bottom: 120 }}
-            dragElastic={0.2}
+            dragConstraints={{ top: -90, bottom: 90 }}
+            dragElastic={0.15}
             onDragEnd={handleDragEnd}
             style={{ y }}
             className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing touch-none"
-            whileDrag={{ scale: 1.1 }}
+            whileDrag={{ scale: 1.2 }}
           >
             <motion.div
-              className="w-10 h-10 rounded-full relative"
+              className="w-8 h-8 relative"
               style={{
                 backgroundColor: currentGame ? '#ffffff' : '#000000',
+                borderRadius: '50%',
                 boxShadow: currentGame ? 
-                  '0 4px 20px rgba(0, 0, 0, 0.3)' : 
-                  '0 4px 20px rgba(0, 0, 0, 0.15)'
+                  '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.3)' : 
+                  '0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.8)'
               }}
               animate={{
-                scale: isTransitioning ? 3 : 1
+                scale: isTransitioning ? 4 : 1
               }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
             >
-              {/* 내부 인디케이터 */}
+              {/* 중앙 인디케이터 점 */}
               <motion.div
-                className="absolute inset-2 rounded-full"
+                className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
                 style={{
                   backgroundColor: currentGame === 'fresh' ? '#ff0000' : 
                                  currentGame === 'chill' ? '#ffcc00' : '#ffffff'
                 }}
                 animate={{
-                  scale: currentGame ? [1, 1.1, 1] : 1,
+                  scale: currentGame ? [1, 1.3, 1] : 1,
                 }}
                 transition={{ 
-                  duration: currentGame ? 1.5 : 0,
+                  duration: currentGame ? 1 : 0,
                   repeat: currentGame ? Infinity : 0,
                   ease: "easeInOut" 
                 }}
               />
+              
+              {/* 선택 시 링 효과 */}
+              {currentGame && (
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2"
+                  style={{
+                    borderColor: currentGame === 'fresh' ? '#ff0000' : '#ffcc00'
+                  }}
+                  initial={{ scale: 1, opacity: 0.8 }}
+                  animate={{ 
+                    scale: [1, 1.8, 1],
+                    opacity: [0.8, 0, 0.8]
+                  }}
+                  transition={{ 
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeOut"
+                  }}
+                />
+              )}
             </motion.div>
           </motion.div>
         </motion.div>
       </motion.div>
       
-      {/* JOIN 버튼 - 우상단, 모바일 안전 영역 고려 */}
+      {/* JOIN 버튼 - 우상단 */}
       <motion.div
         className="absolute z-30"
         style={{
@@ -259,11 +216,14 @@ export default function Home() {
             <motion.button
               key="join-button"
               onClick={() => setShowJoinInput(true)}
-              className="w-12 h-12 rounded-full border flex items-center justify-center text-lg font-light backdrop-blur-sm"
+              className="w-11 h-11 rounded-full flex items-center justify-center text-lg font-light backdrop-blur-md"
               style={{
                 color: currentGame ? '#ffffff' : '#000000',
-                borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)',
-                backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.03)',
+                backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                border: `1px solid ${currentGame ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.12)'}`,
+                boxShadow: currentGame ? 
+                  '0 4px 16px rgba(0, 0, 0, 0.2)' : 
+                  '0 4px 16px rgba(0, 0, 0, 0.1)'
               }}
               whileTap={{ scale: 0.9 }}
               initial={{ opacity: 0 }}
@@ -286,11 +246,11 @@ export default function Home() {
                 onChange={(e) => setRoomId(e.target.value.toUpperCase())}
                 onKeyPress={(e) => e.key === 'Enter' && handleJoinRoom()}
                 placeholder="ROOM"
-                className="w-20 h-12 text-sm text-center bg-transparent border rounded-full outline-none font-light backdrop-blur-sm"
+                className="w-20 h-11 text-sm text-center bg-transparent border rounded-full outline-none font-light backdrop-blur-md"
                 style={{ 
                   color: currentGame ? '#ffffff' : '#000000',
-                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)',
-                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.03)',
+                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.12)',
+                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
                   fontSize: '16px'
                 }}
                 autoFocus
@@ -298,11 +258,11 @@ export default function Home() {
               />
               <button
                 onClick={handleJoinRoom}
-                className="w-12 h-12 rounded-full border flex items-center justify-center text-sm backdrop-blur-sm"
+                className="w-11 h-11 rounded-full border flex items-center justify-center text-sm backdrop-blur-md"
                 style={{ 
                   color: currentGame ? '#ffffff' : '#000000',
-                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)',
-                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.03)'
+                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.12)',
+                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)'
                 }}
               >
                 →
@@ -312,11 +272,11 @@ export default function Home() {
                   setShowJoinInput(false)
                   setRoomId('')
                 }}
-                className="w-12 h-12 rounded-full border flex items-center justify-center text-sm backdrop-blur-sm"
+                className="w-11 h-11 rounded-full border flex items-center justify-center text-sm backdrop-blur-md"
                 style={{ 
                   color: currentGame ? '#ffffff' : '#000000',
-                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)',
-                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.03)'
+                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.12)',
+                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)'
                 }}
               >
                 ×
@@ -340,13 +300,13 @@ export default function Home() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="w-16 h-16 rounded-full border"
+              className="w-12 h-12 rounded-full border-2"
               style={{
                 borderColor: currentGame === 'fresh' ? '#ff0000' : 
                             currentGame === 'chill' ? '#ffcc00' : '#000000'
               }}
               animate={{
-                scale: [1, 0.5, 20],
+                scale: [1, 0.5, 15],
                 rotate: [0, 180, 360],
                 borderWidth: ['2px', '1px', '0px']
               }}
