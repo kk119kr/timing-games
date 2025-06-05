@@ -9,7 +9,7 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false)
   
   const y = useMotionValue(0)
-  const constraintRef = useRef(null)
+  const constraintRef = useRef<HTMLDivElement>(null)
   
   // 슬라이더 위치에 따른 현재 게임 타입
   const currentGame = y.get() < -50 ? 'fresh' : y.get() > 50 ? 'chill' : null
@@ -51,50 +51,19 @@ export default function Home() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 배경 가이드 라인들 */}
+      {/* 상단 FRESH 영역 */}
       <motion.div
-        className="absolute left-1/2 transform -translate-x-1/2 w-px opacity-20"
+        className="absolute top-0 left-0 right-0 flex items-center justify-center"
         style={{
-          height: '100vh',
-          backgroundColor: currentGame ? '#ffffff' : '#000000',
-          top: 0
+          height: 'calc(50vh - env(safe-area-inset-top, 0px))',
+          paddingTop: 'max(2rem, env(safe-area-inset-top, 0px))'
         }}
-        animate={{
-          opacity: currentGame ? 0.3 : 0.1
-        }}
-      />
-      
-      {/* 상하단 수평 가이드 라인 */}
-      <motion.div
-        className="absolute left-0 right-0 h-px opacity-10"
-        style={{
-          top: '25%',
-          backgroundColor: currentGame ? '#ffffff' : '#000000'
-        }}
-        animate={{
-          opacity: currentGame ? 0.2 : 0.05
-        }}
-      />
-      <motion.div
-        className="absolute left-0 right-0 h-px opacity-10"
-        style={{
-          top: '75%',
-          backgroundColor: currentGame ? '#ffffff' : '#000000'
-        }}
-        animate={{
-          opacity: currentGame ? 0.2 : 0.05
-        }}
-      />
-      
-      {/* 상단 FRESH - 명확하게 분리 */}
-      <motion.div
-        className="absolute top-0 left-0 right-0 h-1/2 flex items-center justify-center"
         initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
         <motion.h1 
-          className="text-6xl md:text-8xl font-black tracking-[0.3em]"
+          className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-[0.3em] px-4"
           style={{
             color: currentGame === 'fresh' ? '#ff0000' : 
                    currentGame === 'chill' ? '#ffffff' : '#000000',
@@ -110,15 +79,19 @@ export default function Home() {
         </motion.h1>
       </motion.div>
       
-      {/* 하단 CHILL - 명확하게 분리 */}
+      {/* 하단 CHILL 영역 */}
       <motion.div
-        className="absolute bottom-0 left-0 right-0 h-1/2 flex items-center justify-center"
+        className="absolute bottom-0 left-0 right-0 flex items-center justify-center"
+        style={{
+          height: 'calc(50vh - env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 0px))'
+        }}
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
         <motion.h1 
-          className="text-6xl md:text-8xl font-black tracking-[0.3em]"
+          className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-[0.3em] px-4"
           style={{
             color: currentGame === 'chill' ? '#ffcc00' : 
                    currentGame === 'fresh' ? '#ffffff' : '#000000',
@@ -134,12 +107,14 @@ export default function Home() {
         </motion.h1>
       </motion.div>
       
-      {/* 상단 방향 표시 - 미니멀 */}
+      {/* 상단 곡선 인디케이터 */}
       <motion.div
-        className="absolute top-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center"
+        className="absolute left-1/2 transform -translate-x-1/2"
+        style={{
+          top: 'max(1.5rem, env(safe-area-inset-top, 0px))'
+        }}
         animate={{
           opacity: [0.3, 1, 0.3],
-          y: [-2, 0, -2]
         }}
         transition={{ 
           duration: 2, 
@@ -147,26 +122,33 @@ export default function Home() {
           ease: "easeInOut"
         }}
       >
-        <motion.div 
-          className="w-4 h-4 border-l-2 border-t-2 rotate-45"
-          style={{
-            borderColor: currentGame ? '#ffffff' : '#000000'
-          }}
-        />
-        <motion.div 
-          className="w-px h-4 mt-1"
-          style={{
-            backgroundColor: currentGame ? '#ffffff' : '#000000'
-          }}
-        />
+        <svg width="24" height="20" viewBox="0 0 24 20" fill="none">
+          <path 
+            d="M3 17 C7 5, 17 5, 21 17" 
+            stroke={currentGame ? '#ffffff' : '#000000'} 
+            strokeWidth="2" 
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path 
+            d="M5 15 C8 8, 16 8, 19 15" 
+            stroke={currentGame ? '#ffffff' : '#000000'} 
+            strokeWidth="1.5" 
+            fill="none"
+            strokeLinecap="round"
+            opacity="0.6"
+          />
+        </svg>
       </motion.div>
       
-      {/* 하단 방향 표시 - 미니멀 */}
+      {/* 하단 곡선 인디케이터 */}
       <motion.div
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center"
+        className="absolute left-1/2 transform -translate-x-1/2"
+        style={{
+          bottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))'
+        }}
         animate={{
           opacity: [0.3, 1, 0.3],
-          y: [2, 0, 2]
         }}
         transition={{ 
           duration: 2, 
@@ -175,81 +157,99 @@ export default function Home() {
           delay: 1
         }}
       >
-        <motion.div 
-          className="w-px h-4 mb-1"
-          style={{
-            backgroundColor: currentGame ? '#ffffff' : '#000000'
-          }}
-        />
-        <motion.div 
-          className="w-4 h-4 border-l-2 border-b-2 rotate-45"
-          style={{
-            borderColor: currentGame ? '#ffffff' : '#000000'
-          }}
-        />
+        <svg width="24" height="20" viewBox="0 0 24 20" fill="none" className="rotate-180">
+          <path 
+            d="M3 17 C7 5, 17 5, 21 17" 
+            stroke={currentGame ? '#ffffff' : '#000000'} 
+            strokeWidth="2" 
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path 
+            d="M5 15 C8 8, 16 8, 19 15" 
+            stroke={currentGame ? '#ffffff' : '#000000'} 
+            strokeWidth="1.5" 
+            fill="none"
+            strokeLinecap="round"
+            opacity="0.6"
+          />
+        </svg>
       </motion.div>
       
-      {/* 중앙 슬라이더 - 에어리하고 깔끔하게 */}
+      {/* 중앙 슬라이더 트랙 */}
       <motion.div
         ref={constraintRef}
-        className="absolute inset-0 flex items-center justify-center z-20"
+        className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20"
       >
+        {/* 슬라이더 트랙 컨테이너 (iPhone 볼륨 스타일) */}
         <motion.div
-          drag="y"
-          dragConstraints={{ top: -120, bottom: 120 }}
-          dragElastic={0.2}
-          onDragEnd={handleDragEnd}
-          style={{ y }}
-          className="relative cursor-grab active:cursor-grabbing touch-none z-30"
-          whileDrag={{ scale: 1.05 }}
+          className="relative w-12 h-64 rounded-full"
+          style={{
+            backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+            border: `1px solid ${currentGame ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
+          }}
         >
-          {/* 슬라이더 트랙 배경 */}
+          {/* 트랙 내부 음영 */}
           <motion.div
-            className="absolute w-1 h-64 left-1/2 transform -translate-x-1/2 rounded-full opacity-20"
+            className="absolute inset-1 rounded-full"
             style={{
-              backgroundColor: currentGame ? '#ffffff' : '#000000',
-              top: -128
+              background: currentGame ? 
+                'linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%)' :
+                'linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.01) 100%)'
             }}
           />
           
-          {/* 메인 슬라이더 버튼 */}
+          {/* 드래그 가능한 슬라이더 버튼 */}
           <motion.div
-            className="w-16 h-16 rounded-full relative backdrop-blur-sm"
-            style={{
-              backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-              border: `1px solid ${currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.1)'}`,
-              boxShadow: currentGame ? 
-                '0 4px 20px rgba(0, 0, 0, 0.1)' : 
-                '0 4px 20px rgba(0, 0, 0, 0.05)'
-            }}
-            animate={{
-              scale: isTransitioning ? 3 : 1
-            }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            drag="y"
+            dragConstraints={{ top: -120, bottom: 120 }}
+            dragElastic={0.2}
+            onDragEnd={handleDragEnd}
+            style={{ y }}
+            className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing touch-none"
+            whileDrag={{ scale: 1.1 }}
           >
-            {/* 내부 인디케이터 */}
             <motion.div
-              className="absolute inset-4 rounded-full"
+              className="w-10 h-10 rounded-full relative"
               style={{
-                backgroundColor: currentGame === 'fresh' ? '#ff0000' : 
-                               currentGame === 'chill' ? '#ffcc00' : '#000000'
+                backgroundColor: currentGame ? '#ffffff' : '#000000',
+                boxShadow: currentGame ? 
+                  '0 4px 20px rgba(0, 0, 0, 0.3)' : 
+                  '0 4px 20px rgba(0, 0, 0, 0.15)'
               }}
               animate={{
-                scale: currentGame ? [1, 1.1, 1] : 1,
+                scale: isTransitioning ? 3 : 1
               }}
-              transition={{ 
-                duration: currentGame ? 1.5 : 0,
-                repeat: currentGame ? Infinity : 0,
-                ease: "easeInOut" 
-              }}
-            />
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            >
+              {/* 내부 인디케이터 */}
+              <motion.div
+                className="absolute inset-2 rounded-full"
+                style={{
+                  backgroundColor: currentGame === 'fresh' ? '#ff0000' : 
+                                 currentGame === 'chill' ? '#ffcc00' : '#ffffff'
+                }}
+                animate={{
+                  scale: currentGame ? [1, 1.1, 1] : 1,
+                }}
+                transition={{ 
+                  duration: currentGame ? 1.5 : 0,
+                  repeat: currentGame ? Infinity : 0,
+                  ease: "easeInOut" 
+                }}
+              />
+            </motion.div>
           </motion.div>
         </motion.div>
       </motion.div>
       
-      {/* JOIN 버튼 - 우상단 */}
+      {/* JOIN 버튼 - 우상단, 모바일 안전 영역 고려 */}
       <motion.div
-        className="absolute top-6 right-6 z-30"
+        className="absolute z-30"
+        style={{
+          top: 'max(1.5rem, env(safe-area-inset-top, 0px))',
+          right: 'max(1.5rem, env(safe-area-inset-right, 0px))'
+        }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
@@ -259,11 +259,11 @@ export default function Home() {
             <motion.button
               key="join-button"
               onClick={() => setShowJoinInput(true)}
-              className="w-12 h-12 rounded-full border flex items-center justify-center text-sm font-light backdrop-blur-sm"
+              className="w-12 h-12 rounded-full border flex items-center justify-center text-lg font-light backdrop-blur-sm"
               style={{
                 color: currentGame ? '#ffffff' : '#000000',
-                borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.1)',
-                backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.02)',
+                borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)',
+                backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.03)',
               }}
               whileTap={{ scale: 0.9 }}
               initial={{ opacity: 0 }}
@@ -289,8 +289,8 @@ export default function Home() {
                 className="w-20 h-12 text-sm text-center bg-transparent border rounded-full outline-none font-light backdrop-blur-sm"
                 style={{ 
                   color: currentGame ? '#ffffff' : '#000000',
-                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.1)',
-                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.02)',
+                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)',
+                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.03)',
                   fontSize: '16px'
                 }}
                 autoFocus
@@ -301,8 +301,8 @@ export default function Home() {
                 className="w-12 h-12 rounded-full border flex items-center justify-center text-sm backdrop-blur-sm"
                 style={{ 
                   color: currentGame ? '#ffffff' : '#000000',
-                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.1)',
-                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.02)'
+                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)',
+                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.03)'
                 }}
               >
                 →
@@ -315,8 +315,8 @@ export default function Home() {
                 className="w-12 h-12 rounded-full border flex items-center justify-center text-sm backdrop-blur-sm"
                 style={{ 
                   color: currentGame ? '#ffffff' : '#000000',
-                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.1)',
-                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.02)'
+                  borderColor: currentGame ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)',
+                  backgroundColor: currentGame ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.03)'
                 }}
               >
                 ×
