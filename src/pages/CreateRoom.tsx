@@ -31,11 +31,11 @@ export default function CreateRoom() {
       const room = await createRoom(gameType, userId)
       setRoomId(room.id)
       
-      // QR 코드 생성 - 미니멀 스타일
+      // QR 코드 생성 - 모바일에 최적화된 크기
       const roomUrl = `${window.location.origin}/room/${room.id}`
       const qrUrl = await QRCode.toDataURL(roomUrl, {
-        width: 200,
-        margin: 1,
+        width: 300, // 모바일에서 더 잘 보이도록 크기 증가
+        margin: 2,
         color: {
           dark: '#000000',
           light: '#ffffff'
@@ -67,19 +67,21 @@ export default function CreateRoom() {
   
   return (
     <motion.div 
-      className="h-screen w-screen flex flex-col items-center justify-center bg-white relative overflow-hidden"
+      className="h-screen-mobile w-screen flex flex-col items-center justify-center bg-white relative overflow-hidden"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)'
+      }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 뒤로가기 버튼 - 모바일 안전 영역 고려 */}
+      {/* 뒤로가기 버튼 - 모바일 터치 영역 증가 */}
       <motion.button
         onClick={() => navigate('/')}
-        className="absolute top-4 left-4 w-10 h-10 flex items-center justify-center border border-black rounded-full text-sm font-light hover:bg-black hover:text-white transition-colors z-50"
-        style={{
-          top: 'max(1rem, env(safe-area-inset-top))',
-          left: 'max(1rem, env(safe-area-inset-left))'
-        }}
+        className="absolute top-4 left-4 w-12 h-12 flex items-center justify-center border-2 border-black rounded-full text-base font-light hover:bg-black hover:text-white transition-colors z-50"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         whileTap={{ scale: 0.9 }}
@@ -87,24 +89,20 @@ export default function CreateRoom() {
         ←
       </motion.button>
       
-      {/* 게임 타입 인디케이터 - 모바일 안전 영역 고려 */}
+      {/* 게임 타입 인디케이터 */}
       <motion.div
         className="absolute top-4 right-4"
-        style={{
-          top: 'max(1rem, env(safe-area-inset-top))',
-          right: 'max(1rem, env(safe-area-inset-right))'
-        }}
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
       >
         <motion.div
-          className="px-4 py-2 border border-black rounded-full"
+          className="px-4 py-3 border-2 border-black rounded-full"
           whileHover={{ 
             backgroundColor: '#000000',
             color: '#ffffff'
           }}
         >
-          <span className="text-xs font-light tracking-[0.3em] uppercase">
+          <span className="text-sm font-light tracking-[0.3em] uppercase">
             {gameType || 'GAME'}
           </span>
         </motion.div>
@@ -112,7 +110,7 @@ export default function CreateRoom() {
       
       {/* 중앙 컨텐츠 */}
       <motion.div
-        className="flex flex-col items-center px-4"
+        className="flex flex-col items-center px-6"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
@@ -121,12 +119,12 @@ export default function CreateRoom() {
           {loading ? (
             <motion.div
               key="loading"
-              className="w-44 h-44 md:w-48 md:h-48 flex items-center justify-center border border-gray-300 rounded-lg"
+              className="w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center border-2 border-gray-300 rounded-xl"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              {/* 로딩 애니메이션 - 서브스턴스 스타일 */}
+              {/* 로딩 애니메이션 */}
               <motion.div
                 className="w-12 h-12 border-2 border-black rounded-full"
                 style={{
@@ -148,9 +146,9 @@ export default function CreateRoom() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              {/* QR 코드 컨테이너 */}
+              {/* QR 코드 컨테이너 - 모바일에 맞게 크기 조정 */}
               <motion.div
-                className="relative mb-6 bg-white border border-black rounded-lg p-4"
+                className="relative mb-6 bg-white border-2 border-black rounded-xl p-4 sm:p-6"
                 initial={{ scale: 0.8 }}
                 animate={{ scale: showQR ? 1 : 0.8 }}
                 transition={{ 
@@ -159,20 +157,20 @@ export default function CreateRoom() {
                   damping: 25 
                 }}
               >
-                <motion.div className="w-44 h-44 md:w-48 md:h-48 flex items-center justify-center">
+                <motion.div className="w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center">
                   <AnimatePresence>
                     {showQR && qrCodeUrl ? (
                       <motion.img
                         src={qrCodeUrl}
                         alt="QR Code"
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain rounded-lg"
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.3, duration: 0.4 }}
                       />
                     ) : (
                       <motion.div
-                        className="w-3 h-3 bg-gray-400 rounded-full"
+                        className="w-4 h-4 bg-gray-400 rounded-full"
                         animate={{ 
                           scale: [1, 1.2, 1],
                           opacity: [0.5, 1, 0.5]
@@ -195,12 +193,12 @@ export default function CreateRoom() {
                 transition={{ delay: 0.8 }}
               >
                 <motion.p 
-                  className="text-xs font-light tracking-[0.4em] mb-4 text-gray-500 uppercase"
+                  className="text-sm font-light tracking-[0.4em] mb-4 text-gray-500 uppercase"
                 >
                   ROOM
                 </motion.p>
                 <motion.p 
-                  className="text-5xl md:text-7xl font-black tracking-[0.3em] text-black"
+                  className="text-4xl sm:text-5xl md:text-6xl font-black tracking-[0.3em] text-black"
                   style={{ 
                     fontFamily: 'system-ui, -apple-system, sans-serif',
                     fontVariantNumeric: 'tabular-nums'
@@ -214,10 +212,10 @@ export default function CreateRoom() {
                 
                 {/* 게임 타입별 색상 인디케이터 라인 */}
                 <motion.div
-                  className="w-16 h-0.5 mx-auto mt-4"
+                  className="w-20 h-1 mx-auto mt-4"
                   style={{ backgroundColor: gameTypeColor }}
                   initial={{ width: 0 }}
-                  animate={{ width: 64 }}
+                  animate={{ width: 80 }}
                   transition={{ delay: 1, duration: 0.5 }}
                 />
               </motion.div>
@@ -226,29 +224,26 @@ export default function CreateRoom() {
         </AnimatePresence>
       </motion.div>
       
-      {/* 하단 액션 영역 - 모바일 안전 영역 고려 */}
+      {/* 하단 액션 영역 */}
       <motion.div
-        className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-4 px-4"
-        style={{
-          bottom: 'max(1rem, env(safe-area-inset-bottom))'
-        }}
+        className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-4 px-6 w-full max-w-sm"
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 1.2 }}
       >
         {/* 스캔 안내 */}
         <motion.p
-          className="text-xs font-light tracking-[0.4em] text-gray-500 uppercase"
+          className="text-sm font-light tracking-[0.4em] text-gray-500 uppercase"
           animate={{ opacity: showQR ? 1 : 0 }}
         >
           SCAN TO JOIN
         </motion.p>
         
-        {/* 대기실 이동 버튼 */}
+        {/* 대기실 이동 버튼 - 모바일 터치 영역 증가 */}
         {roomId && (
           <motion.button
             onClick={handleGoToRoom}
-            className="px-6 py-3 border border-black rounded-full text-sm font-light tracking-[0.2em] hover:bg-black hover:text-white transition-all duration-300 uppercase"
+            className="w-full px-6 py-4 border-2 border-black rounded-full text-base font-light tracking-[0.2em] hover:bg-black hover:text-white transition-all duration-300 uppercase min-h-[56px]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.4 }}
@@ -258,23 +253,58 @@ export default function CreateRoom() {
             WAITING ROOM
           </motion.button>
         )}
+        
+        {/* 방 ID 복사 버튼 (모바일에서 유용) */}
+        {roomId && (
+          <motion.button
+            onClick={() => {
+              navigator.clipboard?.writeText(roomId).then(() => {
+                // 햅틱 피드백
+                navigator.vibrate?.(50)
+                // 간단한 피드백 표시
+                const button = document.activeElement as HTMLButtonElement
+                if (button) {
+                  const originalText = button.textContent
+                  button.textContent = 'COPIED!'
+                  setTimeout(() => {
+                    button.textContent = originalText
+                  }, 1000)
+                }
+              }).catch(() => {
+                // 복사 실패 시 선택 가능하도록
+                const input = document.createElement('input')
+                input.value = roomId
+                document.body.appendChild(input)
+                input.select()
+                document.execCommand('copy')
+                document.body.removeChild(input)
+              })
+            }}
+            className="text-sm font-light tracking-[0.2em] text-gray-500 hover:text-black transition-colors uppercase px-4 py-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.6 }}
+          >
+            COPY CODE
+          </motion.button>
+        )}
       </motion.div>
       
-      {/* 배경 기하학적 요소들 - 서브스턴스 스타일 */}
+      {/* 배경 기하학적 요소들 - 모바일에서는 더 미묘하게 */}
       <motion.div
-        className="absolute top-1/4 left-4 w-px h-16 md:h-24 bg-gray-200"
+        className="absolute top-1/4 left-4 w-px h-12 sm:h-16 bg-gray-200"
         initial={{ height: 0 }}
-        animate={{ height: window.innerWidth < 768 ? 64 : 96 }}
+        animate={{ height: window.innerWidth < 640 ? 48 : 64 }}
         transition={{ delay: 2, duration: 1 }}
       />
       <motion.div
-        className="absolute bottom-1/4 right-4 w-px h-16 md:h-24 bg-gray-200"
+        className="absolute bottom-1/4 right-4 w-px h-12 sm:h-16 bg-gray-200"
         initial={{ height: 0 }}
-        animate={{ height: window.innerWidth < 768 ? 64 : 96 }}
+        animate={{ height: window.innerWidth < 640 ? 48 : 64 }}
         transition={{ delay: 2.2, duration: 1 }}
       />
       
-      {/* 미세한 그리드 패턴 - 매우 미묘하게 */}
+      {/* 미세한 그리드 패턴 */}
       <div
         className="absolute inset-0 opacity-5"
         style={{

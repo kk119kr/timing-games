@@ -12,11 +12,11 @@ export default function Home() {
   const y = useMotionValue(0)
   const constraintRef = useRef(null)
   
-  // 슬라이더 위치에 따른 현재 게임 타입 - 더 민감하게 조정
-  const currentGame = y.get() < -60 ? 'fresh' : y.get() > 60 ? 'chill' : null
+  // 슬라이더 위치에 따른 현재 게임 타입 - 모바일에 맞게 조정
+  const currentGame = y.get() < -40 ? 'fresh' : y.get() > 40 ? 'chill' : null
   
   const handleDragEnd = (_: any, info: any) => {
-    const threshold = 100
+    const threshold = 60 // 모바일에서 더 작은 threshold
     
     if (Math.abs(info.offset.y) > threshold) {
       const game = info.offset.y < 0 ? 'fresh' : 'chill'
@@ -38,11 +38,19 @@ export default function Home() {
   return (
     <motion.div 
       className="h-screen w-screen relative overflow-hidden bg-white select-none"
+      style={{
+        height: '100vh',
+        height: '100dvh', // 동적 뷰포트 높이
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)'
+      }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* Fresh 영역 상단 반전 배경 - 즉각적 모핑 */}
+      {/* Fresh 영역 상단 반전 배경 */}
       <motion.div
         className="absolute inset-0"
         style={{
@@ -53,10 +61,10 @@ export default function Home() {
         animate={{
           opacity: currentGame === 'fresh' ? 1 : 0
         }}
-        transition={{ duration: 0.1, ease: "easeOut" }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       />
       
-      {/* Chill 영역 하단 반전 배경 - 즉각적 모핑 */}
+      {/* Chill 영역 하단 반전 배경 */}
       <motion.div
         className="absolute inset-0"
         style={{
@@ -67,27 +75,26 @@ export default function Home() {
         animate={{
           opacity: currentGame === 'chill' ? 1 : 0
         }}
-        transition={{ duration: 0.1, ease: "easeOut" }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       />
       
-      {/* 중앙 분할선 - 서브스턴스 스타일의 기하학적 라인 */}
+      {/* 중앙 분할선 */}
       <motion.div
-        className="absolute left-0 right-0 h-0.5"
+        className="absolute left-0 right-0 h-1"
         style={{
           top: '50%',
           backgroundColor: currentGame ? '#ffffff' : '#000000',
-          opacity: 1,
         }}
         animate={{
           scaleX: currentGame ? 1.2 : 1,
-          opacity: currentGame ? 1 : 0.2
+          opacity: currentGame ? 1 : 0.3
         }}
         transition={{ duration: 0.2 }}
       />
       
       {/* 상단 FRESH 영역 */}
       <motion.div
-        className="absolute inset-0 flex items-center justify-center"
+        className="absolute inset-0 flex items-center justify-center px-6"
         style={{ 
           clipPath: 'polygon(0 0, 100% 0, 100% 50%, 0 50%)',
         }}
@@ -95,18 +102,18 @@ export default function Home() {
         <motion.div
           className="text-center"
           animate={{
-            y: currentGame === 'fresh' ? -60 : -30,
+            y: currentGame === 'fresh' ? -40 : -20,
           }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         >
           <motion.h1 
-            className="text-8xl md:text-9xl font-black tracking-[0.15em] leading-none"
+            className="text-6xl sm:text-7xl md:text-8xl font-black tracking-[0.15em] leading-none"
             style={{
               color: currentGame === 'fresh' ? '#ffffff' : '#000000',
               fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
             animate={{
-              scale: currentGame === 'fresh' ? 1.15 : 1,
+              scale: currentGame === 'fresh' ? 1.1 : 1,
               letterSpacing: currentGame === 'fresh' ? '0.2em' : '0.15em',
               filter: currentGame === 'fresh' 
                 ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3))' 
@@ -117,17 +124,17 @@ export default function Home() {
             FRESH
           </motion.h1>
           <motion.div 
-            className="w-16 h-0.5 mx-auto mt-6"
+            className="w-20 h-1 mx-auto mt-4"
             style={{
               backgroundColor: currentGame === 'fresh' ? '#ffffff' : '#000000',
             }}
             animate={{
-              width: currentGame === 'fresh' ? 80 : 64,
+              width: currentGame === 'fresh' ? 96 : 80,
               opacity: currentGame === 'fresh' ? 1 : 0.3
             }}
           />
           <motion.p 
-            className="text-xs font-light tracking-[0.4em] mt-4 uppercase"
+            className="text-sm sm:text-base font-light tracking-[0.3em] mt-4 uppercase"
             style={{
               color: currentGame === 'fresh' ? '#ffffff' : '#666666',
             }}
@@ -142,7 +149,7 @@ export default function Home() {
       
       {/* 하단 CHILL 영역 */}
       <motion.div
-        className="absolute inset-0 flex items-center justify-center"
+        className="absolute inset-0 flex items-center justify-center px-6"
         style={{ 
           clipPath: 'polygon(0 50%, 100% 50%, 100% 100%, 0 100%)',
         }}
@@ -150,18 +157,18 @@ export default function Home() {
         <motion.div
           className="text-center"
           animate={{
-            y: currentGame === 'chill' ? 60 : 30,
+            y: currentGame === 'chill' ? 40 : 20,
           }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         >
           <motion.h1 
-            className="text-8xl md:text-9xl font-black tracking-[0.15em] leading-none"
+            className="text-6xl sm:text-7xl md:text-8xl font-black tracking-[0.15em] leading-none"
             style={{
               color: currentGame === 'chill' ? '#ffffff' : '#000000',
               fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
             animate={{
-              scale: currentGame === 'chill' ? 1.15 : 1,
+              scale: currentGame === 'chill' ? 1.1 : 1,
               letterSpacing: currentGame === 'chill' ? '0.2em' : '0.15em',
               filter: currentGame === 'chill' 
                 ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3))' 
@@ -172,17 +179,17 @@ export default function Home() {
             CHILL
           </motion.h1>
           <motion.div 
-            className="w-16 h-0.5 mx-auto mt-6"
+            className="w-20 h-1 mx-auto mt-4"
             style={{
               backgroundColor: currentGame === 'chill' ? '#ffffff' : '#000000',
             }}
             animate={{
-              width: currentGame === 'chill' ? 80 : 64,
+              width: currentGame === 'chill' ? 96 : 80,
               opacity: currentGame === 'chill' ? 1 : 0.3
             }}
           />
           <motion.p 
-            className="text-xs font-light tracking-[0.4em] mt-4 uppercase"
+            className="text-sm sm:text-base font-light tracking-[0.3em] mt-4 uppercase"
             style={{
               color: currentGame === 'chill' ? '#ffffff' : '#666666',
             }}
@@ -195,40 +202,40 @@ export default function Home() {
         </motion.div>
       </motion.div>
       
-      {/* 중앙 인터랙션 영역 - 슬라이더 */}
+      {/* 중앙 인터랙션 영역 - 모바일 최적화 */}
       <motion.div
         ref={constraintRef}
         className="absolute inset-0 flex items-center justify-center z-20"
       >
         <motion.div
           drag="y"
-          dragConstraints={{ top: -200, bottom: 200 }}
-          dragElastic={0.1}
+          dragConstraints={{ top: -120, bottom: 120 }} // 제약 범위 축소
+          dragElastic={0.2}
           onDragEnd={handleDragEnd}
           style={{ y }}
-          className="relative cursor-grab active:cursor-grabbing"
+          className="relative cursor-grab active:cursor-grabbing touch-none"
           whileDrag={{ scale: 1.1 }}
         >
-          {/* 메인 슬라이더 버튼 - 서브스턴스 스타일 */}
+          {/* 메인 슬라이더 버튼 - 모바일에 맞게 크기 증가 */}
           <motion.div
-            className="w-20 h-20 md:w-24 md:h-24 relative"
+            className="w-28 h-28 sm:w-32 sm:h-32 relative"
             style={{
               backgroundColor: 'transparent',
-              border: `3px solid ${currentGame ? '#ffffff' : '#000000'}`,
+              border: `4px solid ${currentGame ? '#ffffff' : '#000000'}`,
               borderRadius: '50%',
             }}
             animate={{
               borderColor: currentGame ? '#ffffff' : '#000000',
               boxShadow: currentGame 
-                ? `0 0 30px ${currentGame === 'fresh' ? '#ff0000' : '#ffcc00'}40` 
-                : '0 0 10px rgba(0,0,0,0.1)',
-              scale: isTransitioning ? 3 : 1
+                ? `0 0 40px ${currentGame === 'fresh' ? '#ff0000' : '#ffcc00'}60` 
+                : '0 0 15px rgba(0,0,0,0.15)',
+              scale: isTransitioning ? 4 : 1
             }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
           >
             {/* 내부 코어 */}
             <motion.div
-              className="absolute inset-3 rounded-full flex items-center justify-center"
+              className="absolute inset-4 rounded-full flex items-center justify-center"
               style={{
                 backgroundColor: currentGame ? '#ffffff' : '#000000'
               }}
@@ -236,15 +243,15 @@ export default function Home() {
                 scale: currentGame ? 1 : 0.8,
               }}
             >
-              {/* 중앙 인디케이터 도트 */}
+              {/* 중앙 인디케이터 도트 - 크기 증가 */}
               <motion.div
-                className="w-3 h-3 rounded-full"
+                className="w-4 h-4 sm:w-5 sm:h-5 rounded-full"
                 style={{
                   backgroundColor: currentGame === 'fresh' ? '#ff0000' : 
                                  currentGame === 'chill' ? '#ffcc00' : '#ffffff'
                 }}
                 animate={{
-                  scale: currentGame ? [1, 1.5, 1] : 1,
+                  scale: currentGame ? [1, 1.3, 1] : 1,
                   opacity: [0.7, 1, 0.7],
                 }}
                 transition={{ 
@@ -256,49 +263,49 @@ export default function Home() {
             </motion.div>
           </motion.div>
           
-          {/* 세로 가이드 라인 - 미니멀 */}
+          {/* 세로 가이드 라인 */}
           <motion.div 
-            className="absolute left-1/2 transform -translate-x-1/2 w-px"
+            className="absolute left-1/2 transform -translate-x-1/2 w-0.5"
             style={{
-              height: '300px',
-              top: '-150px',
+              height: '200px',
+              top: '-100px',
               backgroundColor: currentGame ? '#ffffff' : '#000000',
             }}
             animate={{
-              opacity: currentGame ? 0.8 : 0.2,
+              opacity: currentGame ? 0.8 : 0.3,
               scaleY: currentGame ? 1.2 : 1
             }}
           />
           
-          {/* 상하 가이드 도트 */}
+          {/* 상하 가이드 도트 - 크기 증가 */}
           <motion.div 
-            className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
+            className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 rounded-full"
             style={{ 
-              top: '-80px',
+              top: '-60px',
               backgroundColor: currentGame === 'fresh' ? '#ffffff' : '#cccccc',
             }}
             animate={{
               scale: currentGame === 'fresh' ? 1.5 : 1,
-              opacity: currentGame === 'fresh' ? 1 : 0.3
+              opacity: currentGame === 'fresh' ? 1 : 0.4
             }}
           />
           <motion.div 
-            className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
+            className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 rounded-full"
             style={{ 
-              top: '80px',
+              top: '60px',
               backgroundColor: currentGame === 'chill' ? '#ffffff' : '#cccccc',
             }}
             animate={{
               scale: currentGame === 'chill' ? 1.5 : 1,
-              opacity: currentGame === 'chill' ? 1 : 0.3
+              opacity: currentGame === 'chill' ? 1 : 0.4
             }}
           />
         </motion.div>
       </motion.div>
       
-      {/* 방 참가 인터페이스 - 극도로 미니멀 */}
+      {/* 방 참가 인터페이스 - 모바일 최적화 */}
       <motion.div
-        className="absolute top-4 right-4 z-30"
+        className="absolute top-6 right-6 z-30"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
@@ -308,7 +315,7 @@ export default function Home() {
             <motion.button
               key="join-button"
               onClick={() => setShowJoinInput(true)}
-              className="text-xs font-light tracking-[0.3em] px-4 py-2 border border-current rounded-full transition-all duration-200"
+              className="text-sm font-light tracking-[0.2em] px-6 py-3 border-2 border-current rounded-full transition-all duration-200 min-h-[48px]" // 터치 영역 증가
               style={{
                 color: currentGame ? '#ffffff' : '#000000',
                 backgroundColor: 'transparent',
@@ -327,7 +334,7 @@ export default function Home() {
           ) : (
             <motion.div
               key="join-input"
-              className="space-y-2"
+              className="space-y-3"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
@@ -338,17 +345,18 @@ export default function Home() {
                 onChange={(e) => setRoomId(e.target.value.toUpperCase())}
                 onKeyPress={(e) => e.key === 'Enter' && handleJoinRoom()}
                 placeholder="ROOM"
-                className="w-24 h-8 text-xs font-light tracking-wider text-center bg-transparent border border-current rounded-full outline-none"
+                className="w-32 h-12 text-sm font-light tracking-wider text-center bg-transparent border-2 border-current rounded-full outline-none"
                 style={{ 
                   color: currentGame ? '#ffffff' : '#000000',
+                  fontSize: '16px' // iOS 확대 방지
                 }}
                 autoFocus
                 maxLength={6}
               />
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between">
                 <button
                   onClick={handleJoinRoom}
-                  className="opacity-70 hover:opacity-100"
+                  className="w-12 h-12 flex items-center justify-center rounded-full border border-current opacity-70 hover:opacity-100"
                   style={{ color: currentGame ? '#ffffff' : '#000000' }}
                 >
                   →
@@ -358,7 +366,7 @@ export default function Home() {
                     setShowJoinInput(false)
                     setRoomId('')
                   }}
-                  className="opacity-50 hover:opacity-100"
+                  className="w-12 h-12 flex items-center justify-center rounded-full border border-current opacity-50 hover:opacity-100"
                   style={{ color: currentGame ? '#ffffff' : '#000000' }}
                 >
                   ×
@@ -369,7 +377,7 @@ export default function Home() {
         </AnimatePresence>
       </motion.div>
       
-      {/* 전환 애니메이션 - 서브스턴스 스타일 변형 효과 */}
+      {/* 전환 애니메이션 */}
       <AnimatePresence>
         {isTransitioning && (
           <motion.div
@@ -378,7 +386,6 @@ export default function Home() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {/* 배경 */}
             <motion.div
               className="absolute inset-0 bg-black"
               initial={{ opacity: 0 }}
@@ -386,9 +393,8 @@ export default function Home() {
               transition={{ duration: 0.2 }}
             />
             
-            {/* 확장하는 중심점 */}
             <motion.div
-              className="w-24 h-24 rounded-full border-2 border-white"
+              className="w-32 h-32 rounded-full border-2 border-white"
               animate={{
                 scale: [1, 0.5, 50],
                 rotate: [0, 180, 720],
@@ -400,7 +406,6 @@ export default function Home() {
               }}
             />
             
-            {/* 게임 타이틀 */}
             <motion.div
               className="absolute text-white"
               initial={{ opacity: 0 }}
@@ -411,7 +416,7 @@ export default function Home() {
               }}
             >
               <motion.h2 
-                className="text-6xl md:text-8xl font-black tracking-[0.2em]"
+                className="text-4xl sm:text-6xl md:text-7xl font-black tracking-[0.2em]"
                 animate={{
                   scale: [0.8, 1, 1.2],
                   filter: [
