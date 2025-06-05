@@ -40,7 +40,6 @@ export default function Home() {
       className="h-screen w-screen relative overflow-hidden bg-white select-none"
       style={{
         height: '100vh',
-        height: '100dvh', // 동적 뷰포트 높이
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingLeft: 'env(safe-area-inset-left)',

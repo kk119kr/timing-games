@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
@@ -44,15 +45,15 @@ function App() {
         document.body.style.height = '-webkit-fill-available'
         
         // iOS Safari 주소창 숨김 개선
-        document.body.style.webkitOverflowScrolling = 'touch'
+        ;(document.body.style as any).webkitOverflowScrolling = 'touch'
         document.body.style.overscrollBehavior = 'none'
       }
       
       // 터치 이벤트 최적화
       document.body.style.touchAction = 'manipulation'
-      document.body.style.webkitTapHighlightColor = 'transparent'
-      document.body.style.webkitUserSelect = 'none'
-      document.body.style.webkitTouchCallout = 'none'
+      ;(document.body.style as any).webkitTapHighlightColor = 'transparent'
+      ;(document.body.style as any).webkitUserSelect = 'none'
+      ;(document.body.style as any).webkitTouchCallout = 'none'
       document.body.style.userSelect = 'none'
     }
     
@@ -138,11 +139,11 @@ function App() {
     const setupPerformanceOptimizations = () => {
       // GPU 가속 활성화
       document.body.style.transform = 'translateZ(0)'
-      document.body.style.webkitTransform = 'translateZ(0)'
+      ;(document.body.style as any).webkitTransform = 'translateZ(0)'
       document.body.style.willChange = 'transform'
       
       // 스크롤 성능 개선
-      document.body.style.webkitOverflowScrolling = 'touch'
+      ;(document.body.style as any).webkitOverflowScrolling = 'touch'
       
       // 터치 지연 제거
       document.body.style.touchAction = 'manipulation'
@@ -229,6 +230,7 @@ function App() {
     }
   }, [])
   
+
   return (
     <Router>
       <div 
@@ -237,7 +239,6 @@ function App() {
           position: 'relative',
           width: '100vw',
           height: '100vh',
-          height: '100dvh',
           backgroundColor: '#f5f5f5'
         }}
       >

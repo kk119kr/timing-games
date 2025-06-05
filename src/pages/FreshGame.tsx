@@ -922,6 +922,7 @@ export default function FreshGame() {
               ))}
             </div>
             
+
             <motion.button
               onClick={() => navigate('/')}
               className="w-full py-4 md:py-6 text-lg md:text-xl font-light tracking-[0.3em] border border-white text-white hover:bg-white hover:text-black transition-all duration-300 rounded-lg uppercase"

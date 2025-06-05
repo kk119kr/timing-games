@@ -201,9 +201,8 @@ export default function ChillGame() {
   if (!room || myIndex === -1) {
     return (
       <div 
-        className="h-screen w-screen flex items-center justify-center bg-white"
+        className="h-screen-mobile w-screen flex items-center justify-center bg-white"
         style={{
-          height: '100vh',
           height: '100dvh'
         }}
       >
@@ -224,7 +223,6 @@ export default function ChillGame() {
     <motion.div 
       className="h-screen w-screen flex flex-col items-center justify-center bg-white relative overflow-hidden touch-none"
       style={{
-        height: '100vh',
         height: '100dvh',
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
@@ -372,22 +370,23 @@ export default function ChillGame() {
         </motion.h2>
       </motion.div>
       
-      {/* 중앙 인터랙션 영역 - 모바일에서 더 크게 */}
-      <motion.div
-        ref={buttonRef}
-        className="w-36 h-36 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full relative"
-        animate={{ 
-          scale: isGlowing ? 1.3 : 1
-        }}
-        transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
-        style={{
-          backgroundColor: isGlowing ? '#ffcc00' : '#f5f5f5',
-          border: `4px solid ${isGlowing ? '#ffcc00' : '#e5e5e5'}`,
-          boxShadow: isGlowing 
-            ? '0 0 80px rgba(255, 204, 0, 0.8), 0 0 120px rgba(255, 204, 0, 0.4), inset 0 0 30px rgba(255, 255, 255, 0.3)' 
-            : '0 10px 30px rgba(0, 0, 0, 0.1)'
-        }}
-      >
+
+        {/* 중앙 인터랙션 영역 - 모바일에서 더 크게 */}
+        <motion.div
+          ref={buttonRef}
+          className="w-36 h-36 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full relative"
+          animate={{ 
+            scale: isGlowing ? 1.3 : 1
+          }}
+          transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
+          style={{
+            backgroundColor: isGlowing ? '#ffcc00' : '#f5f5f5',
+            border: `4px solid ${isGlowing ? '#ffcc00' : '#e5e5e5'}`,
+            boxShadow: isGlowing 
+              ? '0 0 80px rgba(255, 204, 0, 0.8), 0 0 120px rgba(255, 204, 0, 0.4), inset 0 0 30px rgba(255, 255, 255, 0.3)' 
+              : '0 10px 30px rgba(0, 0, 0, 0.1)'
+          }}
+        >
         {/* 발광 링 효과 */}
         <AnimatePresence>
           {isGlowing && (

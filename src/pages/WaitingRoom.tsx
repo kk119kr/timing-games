@@ -94,7 +94,6 @@ export default function WaitingRoom() {
       <div 
         className="h-screen w-screen flex items-center justify-center bg-white"
         style={{
-          height: '100vh',
           height: '100dvh'
         }}
       >
@@ -114,7 +113,6 @@ export default function WaitingRoom() {
       <div 
         className="h-screen w-screen flex flex-col items-center justify-center bg-white px-6"
         style={{
-          height: '100vh',
           height: '100dvh',
           paddingTop: 'env(safe-area-inset-top)',
           paddingBottom: 'env(safe-area-inset-bottom)',
@@ -149,7 +147,6 @@ export default function WaitingRoom() {
     <motion.div 
       className="h-screen w-screen flex flex-col bg-white relative overflow-hidden"
       style={{
-        height: '100vh',
         height: '100dvh',
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
