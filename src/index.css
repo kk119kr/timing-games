@@ -27,6 +27,7 @@ html {
   /* iOS 기본 선택 방지 */
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  user-select: none;
 }
 
 body {
@@ -169,7 +170,6 @@ a:active,
 /* 스크롤 영역 최적화 */
 .scroll-touch {
   -webkit-overflow-scrolling: touch;
-  overflow-scrolling: touch;
 }
 
 .no-scroll {
