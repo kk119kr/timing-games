@@ -37,12 +37,6 @@ body {
   height: 100%;
   height: -webkit-fill-available;
   
-  /* iOS Safari safe area 자동 적용 */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-  
   /* 스크롤 방지 */
   overflow: hidden;
   overscroll-behavior: none;

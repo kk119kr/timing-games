@@ -145,13 +145,10 @@ export default function WaitingRoom() {
   
   return (
     <motion.div 
-      className="h-screen w-screen flex flex-col bg-white relative overflow-hidden"
+      className="h-screen w-screen flex flex-col items-center justify-center bg-white relative overflow-hidden touch-none"
       style={{
-        height: '100dvh',
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        paddingLeft: 'env(safe-area-inset-left)',
-        paddingRight: 'env(safe-area-inset-right)'
+        height: '100vh',
+        width: '100vw'
       }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}

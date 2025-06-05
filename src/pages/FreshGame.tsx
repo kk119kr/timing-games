@@ -507,7 +507,11 @@ export default function FreshGame() {
   
   return (
     <motion.div 
-      className="h-screen w-screen flex flex-col items-center justify-center bg-black relative overflow-hidden select-none"
+      className="h-screen w-screen flex flex-col items-center justify-center bg-white relative overflow-hidden touch-none"
+      style={{
+        height: '100vh',
+        width: '100vw'
+      }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

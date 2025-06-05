@@ -201,23 +201,119 @@ export default function Home() {
         </motion.div>
       </motion.div>
       
-      {/* 중앙 인터랙션 영역 - 모바일 최적화 */}
+            {/* 중앙 인터랙션 영역 - 모바일 최적화 */}
       <motion.div
         ref={constraintRef}
         className="absolute inset-0 flex items-center justify-center z-20"
       >
+        {/* 고정된 세로 가이드 라인 - 배경에 위치 */}
+        <motion.div 
+          className="absolute left-1/2 transform -translate-x-1/2 w-0.5 z-10"
+          style={{
+            height: '240px',
+            top: '50%',
+            marginTop: '-120px',
+            backgroundColor: currentGame ? '#ffffff' : '#000000',
+          }}
+          animate={{
+            opacity: currentGame ? 0.8 : 0.3,
+            boxShadow: currentGame ? `0 0 10px ${currentGame === 'fresh' ? '#ff0000' : '#ffcc00'}30` : 'none'
+          }}
+        />
+        
+        {/* 상하 가이드 도트 - 고정 위치 */}
+        <motion.div 
+          className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 rounded-full z-10"
+          style={{ 
+            top: 'calc(50% - 80px)',
+            backgroundColor: currentGame === 'fresh' ? '#ffffff' : '#cccccc',
+          }}
+          animate={{
+            scale: currentGame === 'fresh' ? 1.5 : 1,
+            opacity: currentGame === 'fresh' ? 1 : 0.4,
+            boxShadow: currentGame === 'fresh' ? '0 0 15px #ff000080' : 'none'
+          }}
+        />
+        <motion.div 
+          className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 rounded-full z-10"
+          style={{ 
+            top: 'calc(50% + 80px)',
+            backgroundColor: currentGame === 'chill' ? '#ffffff' : '#cccccc',
+          }}
+          animate={{
+            scale: currentGame === 'chill' ? 1.5 : 1,
+            opacity: currentGame === 'chill' ? 1 : 0.4,
+            boxShadow: currentGame === 'chill' ? '0 0 15px #ffcc0080' : 'none'
+          }}
+        />
+        
+        {/* 슬라이드 힌트 화살표들 */}
+        <motion.div 
+          className="absolute left-1/2 transform -translate-x-1/2 text-center z-10"
+          style={{ top: 'calc(50% - 140px)' }}
+          animate={{
+            opacity: currentGame ? 0.8 : 0.6,
+            y: currentGame === 'fresh' ? -10 : 0
+          }}
+        >
+          <motion.div 
+            className="text-xl"
+            style={{ color: currentGame === 'fresh' ? '#ffffff' : '#666666' }}
+            animate={{
+              y: [0, -5, 0],
+              opacity: [0.4, 1, 0.4]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            ↑
+          </motion.div>
+          <motion.p 
+            className="text-xs font-light tracking-[0.2em] mt-1 uppercase"
+            style={{ color: currentGame === 'fresh' ? '#ffffff' : '#666666' }}
+          >
+            FRESH
+          </motion.p>
+        </motion.div>
+        
+        <motion.div 
+          className="absolute left-1/2 transform -translate-x-1/2 text-center z-10"
+          style={{ top: 'calc(50% + 120px)' }}
+          animate={{
+            opacity: currentGame ? 0.8 : 0.6,
+            y: currentGame === 'chill' ? 10 : 0
+          }}
+        >
+          <motion.p 
+            className="text-xs font-light tracking-[0.2em] mb-1 uppercase"
+            style={{ color: currentGame === 'chill' ? '#ffffff' : '#666666' }}
+          >
+            CHILL
+          </motion.p>
+          <motion.div 
+            className="text-xl"
+            style={{ color: currentGame === 'chill' ? '#ffffff' : '#666666' }}
+            animate={{
+              y: [0, 5, 0],
+              opacity: [0.4, 1, 0.4]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            ↓
+          </motion.div>
+        </motion.div>
+
         <motion.div
           drag="y"
           dragConstraints={{ top: -120, bottom: 120 }} // 제약 범위 축소
           dragElastic={0.2}
           onDragEnd={handleDragEnd}
           style={{ y }}
-          className="relative cursor-grab active:cursor-grabbing touch-none"
+          className="relative cursor-grab active:cursor-grabbing touch-none z-30"
           whileDrag={{ scale: 1.1 }}
         >
           {/* 메인 슬라이더 버튼 - 모바일에 맞게 크기 증가 */}
           <motion.div
-            className="w-28 h-28 sm:w-32 sm:h-32 relative"
+            className="w-32 h-32 sm:w-36 sm:h-36 relative"
             style={{
               backgroundColor: 'transparent',
               border: `4px solid ${currentGame ? '#ffffff' : '#000000'}`,
@@ -244,7 +340,7 @@ export default function Home() {
             >
               {/* 중앙 인디케이터 도트 - 크기 증가 */}
               <motion.div
-                className="w-4 h-4 sm:w-5 sm:h-5 rounded-full"
+                className="w-5 h-5 sm:w-6 sm:h-6 rounded-full"
                 style={{
                   backgroundColor: currentGame === 'fresh' ? '#ff0000' : 
                                  currentGame === 'chill' ? '#ffcc00' : '#ffffff'
@@ -260,6 +356,23 @@ export default function Home() {
                 }}
               />
             </motion.div>
+            
+            {/* 드래그 힌트 링 */}
+            <motion.div
+              className="absolute inset-0 rounded-full border-2 border-dashed"
+              style={{
+                borderColor: currentGame ? '#ffffff' : '#cccccc'
+              }}
+              animate={{
+                scale: [1, 1.1, 1],
+                opacity: currentGame ? 0 : [0.3, 0.6, 0.3]
+              }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
           </motion.div>
           
           {/* 세로 가이드 라인 */}
