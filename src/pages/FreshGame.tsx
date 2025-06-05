@@ -516,14 +516,10 @@ export default function FreshGame() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 뒤로가기 버튼 - 모바일 안전 영역 고려 */}
+      {/* 뒤로가기 버튼 */}
       <motion.button
         onClick={() => navigate('/')}
-        className="absolute top-4 left-4 w-10 h-10 flex items-center justify-center rounded-full text-sm font-light text-white hover:bg-white hover:text-black transition-colors border border-white z-50"
-        style={{
-          top: 'max(1rem, env(safe-area-inset-top))',
-          left: 'max(1rem, env(safe-area-inset-left))'
-        }}
+        className="absolute top-6 left-6 w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors z-50"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         whileTap={{ scale: 0.9 }}
@@ -531,12 +527,18 @@ export default function FreshGame() {
         ←
       </motion.button>
       
-      {/* 라운드 인디케이터 - 기하학적 미니멀 스타일 */}
+      {/* 게임 타입 인디케이터 */}
       <motion.div
-        className="absolute top-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-4 md:space-x-6"
-        style={{
-          top: 'max(1rem, env(safe-area-inset-top))'
-        }}
+        className="absolute top-6 right-6 w-12 h-12 rounded-full"
+        style={{ backgroundColor: '#ff0000' }}
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.3 }}
+      />
+      
+      {/* 라운드 인디케이터 - 미니멀 디자인 */}
+      <motion.div
+        className="absolute top-20 left-1/2 transform -translate-x-1/2 flex items-center space-x-4"
         initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
       >
@@ -549,32 +551,27 @@ export default function FreshGame() {
             }}
           >
             <motion.div
-              className={`w-2 h-2 rounded-full transition-all ${
-                round < currentRound ? 'bg-white' :
-                round === currentRound ? 'bg-white' :
-                'bg-gray-600'
+              className={`w-3 h-3 rounded-full border-2 ${
+                round < currentRound ? 'bg-black border-black' :
+                round === currentRound ? 'bg-transparent border-black' :
+                'bg-transparent border-gray-300'
               }`}
               animate={{
-                boxShadow: round === currentRound ? '0 0 15px #ffffff80' : 'none'
+                borderColor: round <= currentRound ? '#000000' : '#d1d5db'
               }}
             />
-            <motion.div
-              className="w-px mt-2"
-              style={{
-                height: round === currentRound ? '16px' : '8px',
-                backgroundColor: round <= currentRound ? '#ffffff' : '#666666'
-              }}
-              initial={{ height: 0 }}
-              animate={{ 
-                height: round === currentRound ? '16px' : '8px'
-              }}
-              transition={{ delay: 0.3 }}
-            />
+            <motion.p 
+              className={`text-xs mt-2 font-black tracking-[0.1em] ${
+                round <= currentRound ? 'text-black' : 'text-gray-300'
+              }`}
+            >
+              {round}
+            </motion.p>
           </motion.div>
         ))}
       </motion.div>
       
-      {/* 중앙 상태 메시지 - 미니멀 타이포그래피 */}
+      {/* 중앙 상태 메시지 */}
       <AnimatePresence mode="wait">
         {countdown && (
           <motion.div
@@ -585,14 +582,9 @@ export default function FreshGame() {
             key="countdown"
           >
             <motion.h2
-              className="text-7xl md:text-9xl font-black text-white"
+              className="text-8xl md:text-9xl font-black text-black"
               animate={{ 
-                scale: [1, 1.1, 1],
-                filter: [
-                  'drop-shadow(0 0 20px #ffffff40)',
-                  'drop-shadow(0 0 40px #ffffff80)',
-                  'drop-shadow(0 0 20px #ffffff40)'
-                ]
+                scale: [1, 1.1, 1]
               }}
               transition={{ duration: 0.6 }}
               style={{ 
@@ -614,10 +606,7 @@ export default function FreshGame() {
             key="roundEnd"
           >
             <motion.h2 
-              className="text-2xl md:text-4xl font-light tracking-[0.3em] text-center text-white"
-              style={{ 
-                filter: 'drop-shadow(0 0 30px #ffffff80)'
-              }}
+              className="text-2xl md:text-4xl font-black tracking-[0.3em] text-center text-black"
               animate={{
                 opacity: [1, 0.7, 1]
               }}
@@ -631,158 +620,68 @@ export default function FreshGame() {
       
       {/* 메인 인터랙션 영역 */}
       <div className="flex flex-col items-center gap-12 md:gap-16">
-        {/* 메인 버튼 - 홈화면 슬라이드 버튼과 연결된 디자인 */}
+        {/* 메인 버튼 - 미니멀 디자인 */}
         <motion.div className="relative">
           <motion.button
             ref={buttonRef}
-            className="w-32 h-32 md:w-48 md:h-48 rounded-full relative overflow-hidden border-2"
+            className="w-32 h-32 md:w-40 md:h-40 rounded-full relative overflow-hidden border-2 flex items-center justify-center"
             style={{
+              borderColor: gamePhase === 'playing' && buttonColor > 60 ? '#ff0000' : '#000000',
               backgroundColor: gamePhase === 'playing' && buttonColor > 0
-                ? 'transparent'
-                : 'transparent',
-              borderColor: '#ffffff',
-              boxShadow: gamePhase === 'playing' && buttonColor > 0
-                ? `0 0 ${Math.min(buttonColor * 2, 100)}px hsl(0, 100%, 50%)`
-                : '0 0 20px rgba(255, 255, 255, 0.3)'
+                ? `hsl(0, 100%, ${Math.max(20, 100 - buttonColor * 0.8)}%)`
+                : '#f5f5f5'
             }}
             onClick={handleButtonPress}
             disabled={gamePhase !== 'playing' || hasPressed}
             whileHover={!hasPressed && gamePhase === 'playing' ? { scale: 1.05 } : {}}
             whileTap={!hasPressed && gamePhase === 'playing' ? { scale: 0.95 } : {}}
             animate={{
-              borderColor: gamePhase === 'playing' && buttonColor > 60 ? '#ff0000' : '#ffffff'
+              scale: gamePhase === 'playing' && buttonColor > 80 ? [1, 1.1, 1] : 1
             }}
+            transition={{ duration: buttonColor > 80 ? 0.3 : 0 }}
           >
-            {/* 내부 코어 - 홈화면 버튼과 같은 구조 */}
+            {/* 중앙 인디케이터 */}
             <motion.div
-              className="absolute inset-3 md:inset-4 rounded-full flex items-center justify-center"
+              className="w-4 h-4 md:w-5 md:h-5 rounded-full"
               style={{
-                backgroundColor: gamePhase === 'playing' && buttonColor > 0
-                  ? `hsl(0, 100%, ${Math.max(10, 100 - buttonColor * 0.8)}%)`
-                  : '#ffffff'
+                backgroundColor: gamePhase === 'playing' && buttonColor > 60 ? '#ffffff' : '#000000'
               }}
               animate={{
-                scale: gamePhase === 'playing' && buttonColor > 80 ? [1, 1.1, 1] : 1,
-                boxShadow: gamePhase === 'playing' && buttonColor > 60
-                  ? [
-                    '0 0 30px hsl(0, 100%, 50%)',
-                    '0 0 50px hsl(0, 100%, 50%)',
-                    '0 0 30px hsl(0, 100%, 50%)'
-                  ]
-                  : 'inset 0 0 20px rgba(0, 0, 0, 0.1)'
+                scale: gamePhase === 'playing' && buttonColor > 80 ? [1, 1.5, 1] : 1,
+                opacity: [0.7, 1, 0.7],
               }}
-              transition={{ duration: buttonColor > 80 ? 0.3 : 0 }}
-            >
-              {/* 중앙 인디케이터 */}
-              <motion.div
-                className="w-3 h-3 md:w-4 md:h-4 rounded-full"
-                style={{
-                  backgroundColor: gamePhase === 'playing' && buttonColor > 60 ? '#ffffff' : '#000000'
-                }}
-                animate={{
-                  scale: gamePhase === 'playing' && buttonColor > 80 ? [1, 1.5, 1] : 1,
-                  opacity: [0.7, 1, 0.7],
-                }}
-                transition={{ 
-                  duration: gamePhase === 'playing' && buttonColor > 60 ? 0.5 : 2,
-                  repeat: Infinity,
-                  ease: "easeInOut" 
-                }}
-              />
-            </motion.div>
+              transition={{ 
+                duration: gamePhase === 'playing' && buttonColor > 60 ? 0.5 : 2,
+                repeat: Infinity,
+                ease: "easeInOut" 
+              }}
+            />
             
-            {/* 진행 링 효과 */}
-            {gamePhase === 'playing' && buttonColor > 0 && (
-              <motion.div
-                className="absolute inset-0 rounded-full border-2"
-                style={{
-                  borderColor: '#ff0000',
-                  borderTopColor: 'transparent',
-                  transform: `rotate(${buttonColor * 3.6}deg)`
-                }}
-                animate={{
-                  opacity: [0.5, 1, 0.5]
-                }}
-                transition={{ duration: 0.5, repeat: Infinity }}
-              />
-            )}
-            
-            {/* 네온 아우라 효과 */}
-            {gamePhase === 'playing' && buttonColor > 40 && (
-              <>
-                {[...Array(3)].map((_, i) => (
-                  <motion.div
-                    key={`aura-${i}`}
-                    className="absolute inset-0 rounded-full border"
-                    style={{ 
-                      borderColor: `hsl(0, 100%, 50%)`,
-                      opacity: 0.3 - i * 0.1
-                    }}
-                    animate={{ 
-                      scale: [1, 1.5 + i * 0.3, 2 + i * 0.5],
-                      opacity: [0.3 - i * 0.1, 0.1, 0]
-                    }}
-                    transition={{ 
-                      duration: 1.5,
-                      repeat: Infinity,
-                      ease: "easeOut",
-                      delay: i * 0.2
-                    }}
-                  />
-                ))}
-              </>
-            )}
-            
-            {/* 폭발 효과 - 서브스턴스 스타일 */}
+            {/* 폭발 효과 - 미니멀화 */}
             <AnimatePresence>
               {buttonColor >= 100 && (
                 <>
                   {/* 메인 폭발 플래시 */}
                   <motion.div
-                    className="absolute inset-0 bg-white rounded-full"
+                    className="absolute inset-0 bg-red-500 rounded-full"
                     initial={{ scale: 0, opacity: 1 }}
                     animate={{ 
-                      scale: [1, 4, 8], 
-                      opacity: [1, 0.5, 0] 
+                      scale: [1, 3, 6], 
+                      opacity: [1, 0.3, 0] 
                     }}
-                    transition={{ duration: 1.2, ease: "easeOut" }}
+                    transition={{ duration: 1, ease: "easeOut" }}
                   />
-                  
-                  {/* 기하학적 파편들 */}
-                  {[...Array(12)].map((_, i) => (
-                    <motion.div
-                      key={`fragment-${i}`}
-                      className="absolute w-1 h-6 md:h-8 bg-white"
-                      style={{
-                        left: '50%',
-                        top: '50%',
-                        transformOrigin: 'bottom center',
-                        transform: `translate(-50%, -100%) rotate(${i * 30}deg)`
-                      }}
-                      initial={{ scale: 0, opacity: 1 }}
-                      animate={{
-                        scale: [0, 1, 0],
-                        scaleY: [0, 3, 0],
-                        opacity: [1, 1, 0]
-                      }}
-                      transition={{ 
-                        duration: 0.8,
-                        delay: i * 0.03,
-                        ease: "easeOut"
-                      }}
-                    />
-                  ))}
                   
                   {/* 확산되는 링 */}
                   <motion.div
-                    className="absolute inset-0 border-4 border-white rounded-full"
+                    className="absolute inset-0 border-4 border-red-500 rounded-full"
                     initial={{ scale: 1, opacity: 1 }}
                     animate={{
-                      scale: [1, 6],
+                      scale: [1, 4],
                       opacity: [1, 0],
                       borderWidth: ['4px', '1px']
                     }}
-                    transition={{ duration: 1, ease: "easeOut" }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
                   />
                 </>
               )}
@@ -790,14 +689,14 @@ export default function FreshGame() {
           </motion.button>
         </motion.div>
         
-        {/* 순서 표시 - 미니멀 세로 리스트 */}
+        {/* 순서 표시 - 미니멀 가로 리스트 */}
         <AnimatePresence>
           {pressedOrder.length > 0 && (
             <motion.div
-              className="absolute right-2 md:right-8 top-1/2 transform -translate-y-1/2 flex flex-col gap-2 md:gap-3 max-w-xs"
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 30 }}
+              className="absolute bottom-20 left-1/2 transform -translate-x-1/2 flex flex-wrap justify-center gap-2 max-w-sm"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 30 }}
             >
               {pressedOrder.map((name: string, index: number) => {
                 const score = calculatePressedScore(index, pressedOrder.length)
@@ -805,28 +704,29 @@ export default function FreshGame() {
                 return (
                   <motion.div
                     key={name}
-                    className="flex items-center gap-2 md:gap-4 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg px-2 md:px-4 py-1 md:py-2 border border-white border-opacity-20"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1 border border-gray-200"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.08 }}
                   >
                     <motion.div 
-                      className="w-5 h-5 md:w-6 md:h-6 rounded-full border border-white flex items-center justify-center text-xs font-light text-white"
+                      className="w-4 h-4 rounded-full border flex items-center justify-center text-xs font-black"
                       animate={{
-                        backgroundColor: index === 0 ? '#ffffff' : 'transparent',
-                        color: index === 0 ? '#000000' : '#ffffff'
+                        backgroundColor: index === 0 ? '#000000' : 'transparent',
+                        color: index === 0 ? '#ffffff' : '#000000',
+                        borderColor: '#000000'
                       }}
                     >
                       {index + 1}
                     </motion.div>
-                    <span className="text-xs md:text-sm font-light tracking-wide text-white min-w-8 md:min-w-12">
+                    <span className="text-xs font-black tracking-wide text-black">
                       {name}
                     </span>
                     <span 
-                      className={`text-xs md:text-sm font-light tabular-nums ${
-                        score < 0 ? 'text-red-400' : 
-                        score > 0 ? 'text-green-400' : 
-                        'text-gray-400'
+                      className={`text-xs font-black tabular-nums ${
+                        score < 0 ? 'text-red-600' : 
+                        score > 0 ? 'text-green-600' : 
+                        'text-gray-600'
                       }`}
                     >
                       {score > 0 ? '+' : ''}{score}
@@ -840,7 +740,7 @@ export default function FreshGame() {
                 const notPressedCount = totalParticipants - pressedOrder.length
                 return notPressedCount > 0 && gamePhase === 'playing' ? (
                   <motion.div 
-                    className="text-xs text-gray-400 tracking-[0.2em] font-light mt-1 md:mt-2 px-2 md:px-4"
+                    className="text-xs text-gray-500 tracking-[0.2em] font-black px-3 py-1"
                     animate={{ opacity: [0.5, 1, 0.5] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
                   >
@@ -853,22 +753,18 @@ export default function FreshGame() {
         </AnimatePresence>
       </div>
       
-      {/* 최종 결과 - 서브스턴스 스타일 */}
+      {/* 최종 결과 - 미니멀 디자인 */}
       <AnimatePresence>
         {showResults && (
           <motion.div
-            className="fixed inset-0 bg-black z-30 p-4 flex flex-col"
+            className="fixed inset-0 bg-white z-30 p-6 flex flex-col"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
             {/* 뒤로가기 버튼 */}
             <motion.button
               onClick={() => navigate('/')}
-              className="absolute top-4 left-4 w-10 h-10 flex items-center justify-center rounded-full text-sm font-light text-white hover:bg-white hover:text-black transition-colors border border-white z-50"
-              style={{
-                top: 'max(1rem, env(safe-area-inset-top))',
-                left: 'max(1rem, env(safe-area-inset-left))'
-              }}
+              className="absolute top-6 left-6 w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors z-50"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               whileTap={{ scale: 0.9 }}
@@ -877,7 +773,7 @@ export default function FreshGame() {
             </motion.button>
             
             <motion.h2 
-              className="text-2xl md:text-4xl font-light tracking-[0.4em] text-center text-white mb-8 mt-16 uppercase"
+              className="text-2xl md:text-3xl font-black tracking-[0.3em] text-center text-black mb-8 mt-16"
               initial={{ y: -30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
             >
@@ -888,36 +784,37 @@ export default function FreshGame() {
               {getFinalScores().map((result: any, index: number) => (
                 <motion.div
                   key={result.participant?.id}
-                  className="flex items-center justify-between mb-4 md:mb-6 p-3 md:p-4 bg-white bg-opacity-5 backdrop-blur-sm rounded-lg border border-white border-opacity-10"
+                  className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200"
                   initial={{ opacity: 0, x: -30 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.15 }}
                   style={{
-                    backgroundColor: index === 0 ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                    borderColor: index === 0 ? '#ffffff40' : '#ffffff20',
+                    backgroundColor: index === 0 ? '#000000' : '#f9fafb',
+                    borderColor: index === 0 ? '#000000' : '#e5e7eb',
                   }}
                 >
-                  <div className="flex items-center space-x-3 md:space-x-4">
+                  <div className="flex items-center space-x-4">
                     <motion.div 
-                      className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm font-light border"
+                      className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm font-black border-2"
                       style={{
                         backgroundColor: index === 0 ? '#ffffff' : 'transparent',
-                        color: index === 0 ? '#000000' : '#ffffff',
-                        borderColor: index === 0 ? '#ffffff' : '#ffffff40'
-                      }}
-                      animate={{
-                        boxShadow: index === 0 ? '0 0 20px #ffffff40' : 'none'
+                        color: index === 0 ? '#000000' : '#000000',
+                        borderColor: index === 0 ? '#ffffff' : '#000000'
                       }}
                     >
                       {index + 1}
                     </motion.div>
-                    <p className="text-base md:text-lg font-light tracking-[0.1em] text-white">
+                    <p 
+                      className={`text-base md:text-lg font-black tracking-[0.1em] ${
+                        index === 0 ? 'text-white' : 'text-black'
+                      }`}
+                    >
                       {result.participant?.name}
                     </p>
                   </div>
                   <p 
-                    className={`text-lg md:text-xl font-light tabular-nums ${
-                      index === 0 ? 'text-white' : 'text-gray-400'
+                    className={`text-lg md:text-xl font-black tabular-nums ${
+                      index === 0 ? 'text-white' : 'text-black'
                     }`}
                   >
                     {result.score > 0 ? '+' : ''}{result.score}
@@ -926,20 +823,16 @@ export default function FreshGame() {
               ))}
             </div>
             
-
             <motion.button
               onClick={() => navigate('/')}
-              className="w-full py-4 md:py-6 text-lg md:text-xl font-light tracking-[0.3em] border border-white text-white hover:bg-white hover:text-black transition-all duration-300 rounded-lg uppercase"
+              className="w-full py-4 md:py-5 text-lg md:text-xl font-black tracking-[0.2em] border-2 border-black text-black hover:bg-black hover:text-white transition-all duration-300 rounded-full"
               style={{
                 marginBottom: 'max(1rem, env(safe-area-inset-bottom))'
               }}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
-              whileHover={{ 
-                scale: 1.02,
-                boxShadow: '0 0 30px #ffffff40'
-              }}
+              whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
               NEW GAME
@@ -947,32 +840,6 @@ export default function FreshGame() {
           </motion.div>
         )}
       </AnimatePresence>
-      
-      {/* 배경 기하학적 요소들 - 서브스턴스 스타일 */}
-      <motion.div
-        className="absolute top-1/4 left-4 md:left-12 w-px h-16 md:h-24 bg-white bg-opacity-20"
-        initial={{ height: 0 }}
-        animate={{ height: window.innerWidth < 768 ? 64 : 96 }}
-        transition={{ delay: 1, duration: 1 }}
-      />
-      <motion.div
-        className="absolute bottom-1/4 right-4 md:right-12 w-px h-16 md:h-24 bg-white bg-opacity-20"
-        initial={{ height: 0 }}
-        animate={{ height: window.innerWidth < 768 ? 64 : 96 }}
-        transition={{ delay: 1.2, duration: 1 }}
-      />
-      
-      {/* 미세한 그리드 패턴 */}
-      <div
-        className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: '60px 60px'
-        }}
-      />
     </motion.div>
   )
 }

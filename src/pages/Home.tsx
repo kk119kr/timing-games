@@ -7,7 +7,6 @@ export default function Home() {
   const [showJoinInput, setShowJoinInput] = useState(false)
   const [roomId, setRoomId] = useState('')
   const [isTransitioning, setIsTransitioning] = useState(false)
-  const [selectedGame, setSelectedGame] = useState<'fresh' | 'chill' | null>(null)
   
   const y = useMotionValue(0)
   const constraintRef = useRef(null)
@@ -20,7 +19,6 @@ export default function Home() {
     
     if (Math.abs(info.offset.y) > threshold) {
       const game = info.offset.y < 0 ? 'fresh' : 'chill'
-      setSelectedGame(game)
       setIsTransitioning(true)
       
       setTimeout(() => {
