@@ -184,8 +184,8 @@ export default function WaitingRoom() {
       >
         <motion.h1 
           className="text-6xl font-black tracking-[0.3em] text-black"
-          style={{ 
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+          style={{
+            fontFamily: 'Libre Baskerville, serif',
             fontVariantNumeric: 'tabular-nums'
           }}
         >

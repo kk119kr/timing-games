@@ -327,7 +327,7 @@ export default function ChillGame() {
               className="text-3xl sm:text-4xl md:text-5xl font-black text-black"
               style={{ 
                 fontVariantNumeric: 'tabular-nums',
-                fontFamily: 'system-ui, -apple-system, sans-serif'
+                fontFamily: 'Libre Baskerville, serif'
               }}
               initial={{ opacity: 0, scale: 0.7 }}
               animate={{ 
@@ -360,7 +360,7 @@ export default function ChillGame() {
           }`}
           style={{
             fontVariantNumeric: 'tabular-nums',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
+            fontFamily: 'Libre Baskerville, serif'
           }}
           animate={{
             letterSpacing: isGlowing ? '0.15em' : '0.1em'

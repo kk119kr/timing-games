@@ -33,17 +33,16 @@ export default function Home() {
   }
   
   return (
-    <motion.div 
-      className="h-screen w-screen relative overflow-hidden select-none"
+    <motion.div
+      className="h-screen-mobile w-screen relative overflow-hidden select-none bg-white"
       style={{
-        height: '100vh',
+        height: '100dvh',
         width: '100vw',
         margin: 0,
         padding: 0,
         position: 'fixed',
         top: 0,
-        left: 0,
-        backgroundColor: '#ffffff'
+        left: 0
       }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -86,7 +85,7 @@ export default function Home() {
         <motion.h1 
           className="text-7xl sm:text-8xl md:text-9xl lg:text-[12rem] xl:text-[14rem] font-black tracking-[0.05em]"
           style={{
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            fontFamily: 'Libre Baskerville, serif',
             fontWeight: 900,
             lineHeight: 0.8
           }}
@@ -112,7 +111,7 @@ export default function Home() {
         <motion.h1 
           className="text-7xl sm:text-8xl md:text-9xl lg:text-[12rem] xl:text-[14rem] font-black tracking-[0.05em]"
           style={{
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            fontFamily: 'Libre Baskerville, serif',
             fontWeight: 900,
             lineHeight: 0.8
           }}
@@ -141,8 +140,8 @@ export default function Home() {
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         >
           <div className="flex flex-col items-center space-y-1">
-            <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-b-[14px] border-l-transparent border-r-transparent border-b-gray-400" />
-            <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-b-[14px] border-l-transparent border-r-transparent border-b-gray-400" />
+            <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-b-[14px] border-l-transparent border-r-transparent border-b-black" />
+            <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-b-[14px] border-l-transparent border-r-transparent border-b-black" />
           </div>
         </motion.div>
         
@@ -157,8 +156,8 @@ export default function Home() {
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 1.25 }}
         >
           <div className="flex flex-col items-center space-y-1">
-            <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[14px] border-l-transparent border-r-transparent border-t-gray-400" />
-            <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[14px] border-l-transparent border-r-transparent border-t-gray-400" />
+            <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[14px] border-l-transparent border-r-transparent border-t-black" />
+            <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[14px] border-l-transparent border-r-transparent border-t-black" />
           </div>
         </motion.div>
         
@@ -175,11 +174,10 @@ export default function Home() {
           <motion.div
             className="w-20 h-20 relative flex items-center justify-center"
             style={{
-              backgroundColor: currentGame === 'fresh' ? '#ff0000' : 
-                              currentGame === 'chill' ? '#ffcc00' : '#000000',
+              backgroundColor: currentGame ? '#ffffff' : '#000000',
               borderRadius: '50%',
-              boxShadow: currentGame ? 
-                '0 25px 80px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.15)' : 
+              boxShadow: currentGame ?
+                '0 25px 80px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.15)' :
                 '0 25px 80px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.08)'
             }}
             animate={{
@@ -199,17 +197,17 @@ export default function Home() {
                 ease: "easeInOut" 
               }}
             >
-              <div 
+              <div
                 className="w-10 h-0.5 rounded-full"
-                style={{ backgroundColor: '#ffffff' }}
+                style={{ backgroundColor: currentGame ? '#000000' : '#ffffff' }}
               />
-              <div 
+              <div
                 className="w-10 h-0.5 rounded-full"
-                style={{ backgroundColor: '#ffffff' }}
+                style={{ backgroundColor: currentGame ? '#000000' : '#ffffff' }}
               />
-              <div 
+              <div
                 className="w-10 h-0.5 rounded-full"
-                style={{ backgroundColor: '#ffffff' }}
+                style={{ backgroundColor: currentGame ? '#000000' : '#ffffff' }}
               />
             </motion.div>
             
@@ -219,7 +217,7 @@ export default function Home() {
                 <motion.div
                   className="absolute inset-0 border-2 rounded-full"
                   style={{
-                    borderColor: currentGame === 'fresh' ? '#ff0000' : '#ffcc00'
+                    borderColor: '#000000'
                   }}
                   initial={{ scale: 1, opacity: 0.8 }}
                   animate={{ 
@@ -235,7 +233,7 @@ export default function Home() {
                 <motion.div
                   className="absolute inset-0 border rounded-full"
                   style={{
-                    borderColor: currentGame === 'fresh' ? '#ff0000' : '#ffcc00'
+                    borderColor: '#000000'
                   }}
                   initial={{ scale: 1, opacity: 0.6 }}
                   animate={{ 
@@ -271,8 +269,7 @@ export default function Home() {
             <motion.div
               className="w-16 h-16 rounded border-2"
               style={{
-                borderColor: currentGame === 'fresh' ? '#ff0000' : 
-                            currentGame === 'chill' ? '#ffcc00' : '#000000'
+                borderColor: '#000000'
               }}
               animate={{
                 scale: [1, 0.5, 20],

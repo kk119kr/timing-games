@@ -156,7 +156,7 @@ export default function CreateRoom() {
                 <motion.h1 
                   className="text-6xl font-black tracking-[0.3em] text-black mb-4"
                   style={{ 
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    fontFamily: 'Libre Baskerville, serif',
                     fontVariantNumeric: 'tabular-nums'
                   }}
                 >
