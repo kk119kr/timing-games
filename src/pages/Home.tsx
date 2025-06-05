@@ -4,18 +4,16 @@ import { useNavigate } from 'react-router-dom'
 
 export default function Home() {
   const navigate = useNavigate()
-  const [showJoinInput, setShowJoinInput] = useState(false)
-  const [roomId, setRoomId] = useState('')
   const [isTransitioning, setIsTransitioning] = useState(false)
   
   const y = useMotionValue(0)
   const constraintRef = useRef<HTMLDivElement>(null)
   
-  // 현재 선택된 게임 (드래그 중 실시간 반응)
+  // 현재 선택된 게임 (드래그 중 실시간 반응) - 더 민감하게
   const getCurrentGame = () => {
     const currentY = y.get()
-    if (currentY < -30) return 'fresh'
-    if (currentY > 30) return 'chill'
+    if (currentY < -10) return 'fresh'  // 임계값을 더 낮춤
+    if (currentY > 10) return 'chill'   // 임계값을 더 낮춤
     return null
   }
   
@@ -31,12 +29,6 @@ export default function Home() {
       setTimeout(() => {
         navigate(`/create/${game}`)
       }, 800)
-    }
-  }
-  
-  const handleJoinRoom = () => {
-    if (roomId.trim()) {
-      navigate(`/room/${roomId.trim()}`)
     }
   }
   
@@ -140,8 +132,8 @@ export default function Home() {
       >
         {/* 상단 방향 표시 화살표 */}
         <motion.div
-          className="absolute left-1/2 transform -translate-x-1/2"
-          style={{ bottom: '80px' }}
+          className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+          style={{ top: '-60px' }}
           animate={{
             opacity: [0.2, 0.6, 0.2],
             y: [-3, 3, -3]
@@ -156,8 +148,8 @@ export default function Home() {
         
         {/* 하단 방향 표시 화살표 */}
         <motion.div
-          className="absolute left-1/2 transform -translate-x-1/2"
-          style={{ top: '80px' }}
+          className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+          style={{ bottom: '-60px' }}
           animate={{
             opacity: [0.2, 0.6, 0.2],
             y: [3, -3, 3]
@@ -170,7 +162,7 @@ export default function Home() {
           </div>
         </motion.div>
         
-        {/* 드래그 버튼 - 바우하우스/미니멀 스타일 */}
+        {/* 드래그 버튼 - 원형 미니멀 스타일 */}
         <motion.div
           drag="y"
           dragConstraints={{ top: -120, bottom: 120 }}
@@ -185,14 +177,13 @@ export default function Home() {
             style={{
               backgroundColor: currentGame === 'fresh' ? '#ff0000' : 
                               currentGame === 'chill' ? '#ffcc00' : '#000000',
-              borderRadius: '4px',
+              borderRadius: '50%',
               boxShadow: currentGame ? 
                 '0 25px 80px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.15)' : 
                 '0 25px 80px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.08)'
             }}
             animate={{
-              scale: isTransitioning ? 6 : 1,
-              borderRadius: isTransitioning ? '50%' : '4px'
+              scale: isTransitioning ? 6 : 1
             }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
           >
@@ -226,7 +217,7 @@ export default function Home() {
             {currentGame && (
               <>
                 <motion.div
-                  className="absolute inset-0 border-2 rounded"
+                  className="absolute inset-0 border-2 rounded-full"
                   style={{
                     borderColor: currentGame === 'fresh' ? '#ff0000' : '#ffcc00'
                   }}
@@ -242,7 +233,7 @@ export default function Home() {
                   }}
                 />
                 <motion.div
-                  className="absolute inset-0 border rounded"
+                  className="absolute inset-0 border rounded-full"
                   style={{
                     borderColor: currentGame === 'fresh' ? '#ff0000' : '#ffcc00'
                   }}
@@ -262,90 +253,6 @@ export default function Home() {
             )}
           </motion.div>
         </motion.div>
-      </motion.div>
-      
-      {/* JOIN 버튼 - 우상단 */}
-      <motion.div
-        className="absolute z-30"
-        style={{
-          top: 'max(1.5rem, env(safe-area-inset-top, 0px))',
-          right: 'max(1.5rem, env(safe-area-inset-right, 0px))'
-        }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        <AnimatePresence mode="wait">
-          {!showJoinInput ? (
-            <motion.button
-              key="join-button"
-              onClick={() => setShowJoinInput(true)}
-              className="w-12 h-12 rounded border flex items-center justify-center text-lg font-light backdrop-blur-md"
-              style={{
-                color: '#000000',
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                borderColor: 'rgba(0, 0, 0, 0.1)',
-                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.08)'
-              }}
-              whileTap={{ scale: 0.9 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              +
-            </motion.button>
-          ) : (
-            <motion.div
-              key="join-input"
-              className="flex space-x-2"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-            >
-              <input
-                type="text"
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-                onKeyPress={(e) => e.key === 'Enter' && handleJoinRoom()}
-                placeholder="ROOM"
-                className="w-20 h-12 text-sm text-center border rounded outline-none font-light backdrop-blur-md"
-                style={{ 
-                  color: '#000000',
-                  borderColor: 'rgba(0, 0, 0, 0.1)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  fontSize: '16px'
-                }}
-                autoFocus
-                maxLength={4}
-              />
-              <button
-                onClick={handleJoinRoom}
-                className="w-12 h-12 rounded border flex items-center justify-center text-sm backdrop-blur-md"
-                style={{ 
-                  color: '#000000',
-                  borderColor: 'rgba(0, 0, 0, 0.1)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)'
-                }}
-              >
-                →
-              </button>
-              <button
-                onClick={() => {
-                  setShowJoinInput(false)
-                  setRoomId('')
-                }}
-                className="w-12 h-12 rounded border flex items-center justify-center text-sm backdrop-blur-md"
-                style={{ 
-                  color: '#000000',
-                  borderColor: 'rgba(0, 0, 0, 0.1)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)'
-                }}
-              >
-                ×
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
       
       {/* 전환 애니메이션 */}
