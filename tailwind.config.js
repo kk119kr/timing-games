@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        'xs': '475px',
+      },
       animation: {
         'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'glow': 'glow 1.5s ease-in-out infinite',
@@ -39,6 +42,7 @@ export default {
       },
       fontFamily: {
         'bauhaus': ['Helvetica', 'Arial', 'sans-serif'],
+        'apple': ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', 'system-ui', 'sans-serif'],
       },
     },
   },
