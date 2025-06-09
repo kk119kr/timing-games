@@ -104,14 +104,14 @@ export default function ChillGame() {
     }
   }
   
-  const startGlowSequence = async (roomData: GameRoom) => {
+const startGlowSequence = async (roomData: GameRoom) => {
     if (!roomId) return
     
     let currentIndex = -1
-    let speed = 600
+    let speed = 100 // 초기 빠른 속도
     let rounds = 0
     let stepCount = 0
-    const minRounds = 3
+    const minRounds = 3 // 최소 3바퀴
     const totalParticipants = roomData.participants.length
     
     if (totalParticipants === 0) return
@@ -123,30 +123,34 @@ export default function ChillGame() {
       try {
         await updateGameState(roomId, { glowing_index: currentIndex })
         
-        if (currentIndex === 0 && rounds > 0) {
+        // 한 바퀴 완료 체크
+        if (currentIndex === 0 && stepCount > 0) {
           rounds++
-        } else if (currentIndex === 0) {
-          rounds = 1
         }
         
-        const accelerationFactor = totalParticipants > 5 ? 0.92 : 0.94
-        speed = Math.max(30, speed * accelerationFactor)
-        
-        if (rounds >= minRounds && stepCount > minRounds * totalParticipants) {
-          const stopProbability = speed < 80 ? 0.25 : speed < 150 ? 0.15 : 0.03
+        // 3바퀴 완료 후에만 점점 느려지기 시작
+        if (rounds >= minRounds) {
+          // 점점 느려지게 (속도 증가 = 더 오래 기다림)
+          const decelerationFactor = totalParticipants > 5 ? 1.08 : 1.06
+          speed = Math.min(1200, speed * decelerationFactor) // 최대 1.2초까지
           
-          if (Math.random() < stopProbability) {
-            if (glowInterval.current) {
-              clearInterval(glowInterval.current)
-              glowInterval.current = null
-            }
+          // 충분히 느려졌을 때 랜덤하게 멈춤
+          if (speed > 400) {
+            const stopProbability = speed > 800 ? 0.3 : speed > 600 ? 0.2 : 0.1
             
-            const winner = roomData.participants[currentIndex]
-            await updateGameState(roomId, { 
-              glowing_index: currentIndex,
-              winner: winner.name 
-            })
-            return
+            if (Math.random() < stopProbability) {
+              if (glowInterval.current) {
+                clearInterval(glowInterval.current)
+                glowInterval.current = null
+              }
+              
+              const winner = roomData.participants[currentIndex]
+              await updateGameState(roomId, { 
+                glowing_index: currentIndex,
+                winner: winner.name 
+              })
+              return
+            }
           }
         }
         
