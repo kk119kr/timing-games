@@ -1,12 +1,16 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, useMotionValue, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import QRCode from 'qrcode'
+import { createRoom } from '../lib/supabase'
 
 export default function Home() {
   const navigate = useNavigate()
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [currentGame, setCurrentGame] = useState<'fresh' | 'chill' | null>(null)
   const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 })
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
+  const [showQR, setShowQR] = useState(false)
   
   const y = useMotionValue(0)
   const constraintRef = useRef<HTMLDivElement>(null)
@@ -45,7 +49,33 @@ export default function Home() {
     return () => window.removeEventListener('resize', updateButtonPosition)
   }, [])
   
-  const handleDragEnd = (_: any, info: any) => {
+  const createGameRoomAndQR = async (gameType: 'fresh' | 'chill'): Promise<string | null> => {
+    try {
+      const userId = localStorage.getItem('userId') || `user_${Date.now()}`
+      localStorage.setItem('userId', userId)
+      
+      const room = await createRoom(gameType, userId)
+      
+      const roomUrl = `${window.location.origin}/room/${room.id}`
+      const qrUrl = await QRCode.toDataURL(roomUrl, {
+        width: 160, // QR코드 실제 크기 (CreateRoom의 패딩 제외한 크기)
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        },
+        errorCorrectionLevel: 'M'
+      })
+      
+      setQrCodeUrl(qrUrl)
+      return room.id
+    } catch (error) {
+      console.error('방 생성 실패:', error)
+      return null
+    }
+  }
+  
+  const handleDragEnd = async (_: any, info: any) => {
     const threshold = 60
     
     if (Math.abs(info.offset.y) > threshold) {
@@ -62,9 +92,21 @@ export default function Home() {
       
       setIsTransitioning(true)
       
-      setTimeout(() => {
-        navigate(`/create/${game}`)
-      }, 800)
+      // QR코드 미리 생성
+      const newRoomId = await createGameRoomAndQR(game)
+      
+      if (newRoomId) {
+        // QR 코드가 준비되면 보여주기
+        setTimeout(() => {
+          setShowQR(true)
+        }, 600) // 모핑이 어느정도 진행된 후
+        
+        setTimeout(() => {
+          navigate(`/create/${game}`)
+        }, 1200) // QR이 완전히 나타난 후
+      } else {
+        setIsTransitioning(false)
+      }
     }
   }
   
@@ -141,12 +183,21 @@ export default function Home() {
       {/* 중앙 컨트롤 영역 */}
       <motion.div
         ref={constraintRef}
-        className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20"
+        className="absolute z-20"
+        style={{
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)'
+        }}
       >
-        {/* 상단 가이드 화살표 */}
+        {/* 상단 가이드 화살표 - 정확한 중앙 정렬 */}
         <motion.div
-          className="absolute left-1/2 transform -translate-x-1/2"
-          style={{ top: '-32px' }}
+          className="absolute"
+          style={{ 
+            top: '-32px',
+            left: '50%',
+            transform: 'translateX(-50%)'
+          }}
           animate={{
             opacity: [0.3, 0.7, 0.3],
             y: [-2, 2, -2]
@@ -158,10 +209,14 @@ export default function Home() {
           </svg>
         </motion.div>
         
-        {/* 하단 가이드 화살표 */}
+        {/* 하단 가이드 화살표 - 정확한 중앙 정렬 */}
         <motion.div
-          className="absolute left-1/2 transform -translate-x-1/2"
-          style={{ bottom: '-32px' }}
+          className="absolute"
+          style={{ 
+            bottom: '-32px',
+            left: '50%',
+            transform: 'translateX(-50%)'
+          }}
           animate={{
             opacity: [0.3, 0.7, 0.3],
             y: [2, -2, 2]
@@ -234,7 +289,7 @@ export default function Home() {
         </motion.div>
       </motion.div>
       
-      {/* 모핑 트랜지션 */}
+      {/* 실제 QR코드로 모핑 트랜지션 */}
       <AnimatePresence>
         {isTransitioning && (
           <motion.div
@@ -251,11 +306,11 @@ export default function Home() {
               transition={{ duration: 0.3, delay: 0.2 }}
             />
             
-            {/* 모핑 버튼 */}
+            {/* 실제 QR코드로 모핑하는 버튼 */}
             <motion.div
-              className="absolute bg-black border border-black flex items-center justify-center overflow-hidden"
+              className="absolute bg-white border-2 border-black flex items-center justify-center overflow-hidden"
               style={{
-                left: buttonPosition.x - 28, // 버튼 크기의 절반
+                left: buttonPosition.x - 28, // 버튼 크기의 절반 (56px/2)
                 top: buttonPosition.y - 28,
               }}
               initial={{
@@ -265,50 +320,46 @@ export default function Home() {
               }}
               animate={{
                 left: '50%',
-                top: '50%',
+                top: 'calc(50% - 80px)', // CreateRoom의 QR코드 위치에 맞춤
                 x: '-50%',
                 y: '-50%',
-                width: 192, // QR코드 크기
+                width: 192, // CreateRoom QR 컨테이너 크기
                 height: 192,
-                borderRadius: 12,
+                borderRadius: 16, // CreateRoom의 rounded-2xl
               }}
               transition={{
                 duration: 0.8,
                 ease: [0.4, 0, 0.2, 1]
               }}
             >
-              {/* 초기 도트들 */}
+              {/* 초기 도트들 - 페이드 아웃 */}
               <motion.div
                 className="absolute flex flex-col space-y-1"
                 initial={{ opacity: 1 }}
                 animate={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <div className="w-1 h-1 rounded-full bg-white mx-auto" />
-                <div className="w-1 h-1 rounded-full bg-white mx-auto" />
-                <div className="w-1 h-1 rounded-full bg-white mx-auto" />
+                <div className="w-1 h-1 rounded-full bg-black mx-auto" />
+                <div className="w-1 h-1 rounded-full bg-black mx-auto" />
+                <div className="w-1 h-1 rounded-full bg-black mx-auto" />
               </motion.div>
               
-              {/* QR코드 패턴으로 변환 */}
-              <motion.div 
-                className="absolute inset-4 grid grid-cols-8 gap-0.5"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.3 }}
-              >
-                {[...Array(64)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="w-full h-full bg-white"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: Math.random() > 0.5 ? 1 : 0 }}
+              {/* 실제 QR코드로 변환 */}
+              <AnimatePresence>
+                {showQR && qrCodeUrl && (
+                  <motion.img
+                    src={qrCodeUrl}
+                    alt="QR Code"
+                    className="absolute inset-4 w-auto h-auto object-contain"
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     transition={{ 
-                      delay: 0.4 + (i * 0.005),
-                      duration: 0.1 
+                      duration: 0.4,
+                      ease: [0.4, 0, 0.2, 1]
                     }}
                   />
-                ))}
-              </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         )}
