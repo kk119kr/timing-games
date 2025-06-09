@@ -10,6 +10,7 @@ export default function Home() {
   const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 })
   const [showJoinModal, setShowJoinModal] = useState(false)
   const [roomCode, setRoomCode] = useState('')
+  const [showGameInfoModal, setShowGameInfoModal] = useState(false)
   
   const y = useMotionValue(0)
   const constraintRef = useRef<HTMLDivElement>(null)
@@ -115,24 +116,46 @@ export default function Home() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 상단 JOIN 버튼 */}
-      <motion.button
-        onClick={() => setShowJoinModal(true)}
-        className="absolute top-6 right-6 z-10 w-16 h-12 border-2 border-black rounded-full text-black hover:bg-black hover:text-white transition-all duration-300 text-sm font-light tracking-[0.1em]"
-        style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
-          fontWeight: 300,
-          top: 'max(1.5rem, env(safe-area-inset-top))',
-          right: 'max(1.5rem, env(safe-area-inset-right))'
-        }}
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        JOIN
-      </motion.button>
+      {/* 상단 버튼들 */}
+      <div className="absolute top-6 right-6 z-10 flex space-x-3">
+        {/* INFO 버튼 */}
+        <motion.button
+          onClick={() => setShowGameInfoModal(true)}
+          className="w-16 h-12 border-2 border-black rounded-full text-black hover:bg-black hover:text-white transition-all duration-300 text-sm font-light tracking-[0.1em]"
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            fontWeight: 300,
+            top: 'max(1.5rem, env(safe-area-inset-top))',
+            right: 'max(1.5rem, env(safe-area-inset-right))'
+          }}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          INFO
+        </motion.button>
+        
+        {/* JOIN 버튼 */}
+        <motion.button
+          onClick={() => setShowJoinModal(true)}
+          className="w-16 h-12 border-2 border-black rounded-full text-black hover:bg-black hover:text-white transition-all duration-300 text-sm font-light tracking-[0.1em]"
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            fontWeight: 300,
+            top: 'max(1.5rem, env(safe-area-inset-top))',
+            right: 'max(1.5rem, env(safe-area-inset-right))'
+          }}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          JOIN
+        </motion.button>
+      </div>
       
       {/* 상단 FRESH 영역 */}
       <motion.div
@@ -414,6 +437,195 @@ export default function Home() {
                   입장
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* 게임 설명 모달 */}
+      <AnimatePresence>
+        {showGameInfoModal && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowGameInfoModal(false)}
+          >
+            <motion.div
+              className="bg-white rounded-2xl p-6 sm:p-8 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 
+                className="text-xl sm:text-2xl font-light tracking-[0.2em] text-center text-black mb-8"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  fontWeight: 300
+                }}
+              >
+                HOW TO PLAY
+              </h2>
+              
+              {/* FRESH 게임 설명 */}
+              <div className="mb-8">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div 
+                    className="w-6 h-6 rounded-full"
+                    style={{ backgroundColor: '#ff0000' }}
+                  />
+                  <h3 
+                    className="text-lg font-light tracking-[0.1em] text-black"
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    FRESH
+                  </h3>
+                </div>
+                
+                <div className="space-y-3 text-sm leading-relaxed text-gray-700 ml-9">
+                  <p 
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    • <strong>3라운드</strong>로 구성된 전략적 타이밍 게임
+                  </p>
+                  <p 
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    • 빨간 버튼이 <strong>폭발하기 전에</strong> 눌러야 함
+                  </p>
+                  <p 
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    • 버튼을 누른 <strong>순서</strong>에 따라 점수가 결정됨
+                  </p>
+                  <p 
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    • 가운데 순서일수록 <strong>좋은 점수</strong>, 양 끝은 나쁜 점수
+                  </p>
+                  <p 
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    • 아무도 안 누르면 <strong>폭발!</strong> 큰 마이너스 점수
+                  </p>
+                </div>
+              </div>
+              
+              {/* CHILL 게임 설명 */}
+              <div className="mb-8">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div 
+                    className="w-6 h-6 rounded-full"
+                    style={{ backgroundColor: '#ffcc00' }}
+                  />
+                  <h3 
+                    className="text-lg font-light tracking-[0.1em] text-black"
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    CHILL
+                  </h3>
+                </div>
+                
+                <div className="space-y-3 text-sm leading-relaxed text-gray-700 ml-9">
+                  <p 
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    • 간단하고 <strong>편안한</strong> 룰렛 게임
+                  </p>
+                  <p 
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    • 참가자들 사이에서 <strong>빛이 돌아다님</strong>
+                  </p>
+                  <p 
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    • 무작위로 한 명이 <strong>선택</strong>됨
+                  </p>
+                  <p 
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    • 전략이나 기술이 필요 없는 <strong>순수한 운</strong> 게임
+                  </p>
+                  <p 
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    • 친구들과 함께 <strong>부담 없이</strong> 즐기기 좋음
+                  </p>
+                </div>
+              </div>
+              
+              {/* 공통 설명 */}
+              <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                <h4 
+                  className="text-sm font-light tracking-[0.1em] text-black mb-2"
+                  style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    fontWeight: 400
+                  }}
+                >
+                  게임 시작하기
+                </h4>
+                <p 
+                  className="text-xs leading-relaxed text-gray-600"
+                  style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    fontWeight: 300
+                  }}
+                >
+                  위 또는 아래로 슬라이드하여 게임을 선택하고 방을 만드세요. 
+                  QR코드나 방 번호를 공유하여 친구들을 초대할 수 있습니다.
+                </p>
+              </div>
+              
+              <button
+                onClick={() => setShowGameInfoModal(false)}
+                className="w-full h-12 bg-black text-white rounded-full font-light tracking-[0.1em] hover:bg-gray-800 transition-all duration-300"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  fontWeight: 300
+                }}
+              >
+                확인
+              </button>
             </motion.div>
           </motion.div>
         )}
