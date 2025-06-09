@@ -640,46 +640,45 @@ export default function FreshGame() {
     }
   }
   
-  // 🔥 최종 점수 계산 개선 - roundResults 상태 사용
-  const getFinalScores = () => {
-    const totalScores: Record<string, number> = {}
-    
-    room?.participants.forEach((p: any) => {
-      totalScores[p.id] = 0
+  // 🔥 수정된 getFinalScores 함수 - FreshGame.tsx에서 교체
+const getFinalScores = () => {
+  const totalScores: Record<string, number> = {}
+  
+  room?.participants.forEach((p: any) => {
+    totalScores[p.id] = 0
+  })
+  
+  // roundResults 상태에서 점수 계산 (메인 소스)
+  roundResults.forEach((roundResult) => {
+    roundResult.forEach((result) => {
+      if (totalScores[result.participantId] !== undefined) {
+        totalScores[result.participantId] += result.score
+      }
     })
+  })
+  
+  // 🔥 DB 백업은 roundResults가 비어있을 때만 사용
+  if (roundResults.length === 0 && room?.game_state?.round_scores && Array.isArray(room.game_state.round_scores)) {
+    console.log('🔄 Using DB scores as fallback')
     
-    // roundResults 상태에서 점수 계산
-    roundResults.forEach((roundResult) => {
-      roundResult.forEach((result) => {
-        if (totalScores[result.participantId] !== undefined) {
-          totalScores[result.participantId] += result.score
+    room.game_state.round_scores.forEach((roundScores: Record<string, number>) => {
+      Object.entries(roundScores).forEach(([participantId, score]) => {
+        if (totalScores[participantId] !== undefined) {
+          totalScores[participantId] += score
         }
       })
     })
-    
-    // DB에서도 확인 (백업용)
-    if (room?.game_state?.round_scores && Array.isArray(room.game_state.round_scores)) {
-      room.game_state.round_scores.forEach((roundScores: Record<string, number>) => {
-        Object.entries(roundScores).forEach(([participantId, score]) => {
-          if (totalScores[participantId] !== undefined) {
-            // 이미 계산된 점수와 다르면 DB 값 사용
-            if (totalScores[participantId] === 0) {
-              totalScores[participantId] = score
-            }
-          }
-        })
-      })
-    }
-    
-    console.log('🏆 Final scores calculated:', totalScores)
-    
-    return Object.entries(totalScores)
-      .map(([id, score]) => ({
-        participant: room?.participants.find((p: any) => p.id === id),
-        score
-      }))
-      .sort((a, b) => b.score - a.score)
   }
+  
+  console.log('🏆 Final scores calculated:', totalScores)
+  
+  return Object.entries(totalScores)
+    .map(([id, score]) => ({
+      participant: room?.participants.find((p: any) => p.id === id),
+      score
+    }))
+    .sort((a, b) => b.score - a.score)
+}
   
   return (
     <motion.div 
