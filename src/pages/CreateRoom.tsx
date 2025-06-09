@@ -64,7 +64,7 @@ export default function CreateRoom() {
     <motion.div 
       className="h-screen-mobile w-screen flex flex-col bg-white relative overflow-hidden"
       style={{
-        height: '100vh',
+        
         height: '100dvh',
         width: '100vw',
         position: 'fixed',

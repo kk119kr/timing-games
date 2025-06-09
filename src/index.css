@@ -2,50 +2,128 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 완전한 리셋 */
-* {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-  margin: 0;
-  padding: 0;
+/* Apple 스타일 폰트 정의 */
+:root {
+  --font-apple: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  --font-weight-ultralight: 100;
+  --font-weight-thin: 200;
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* 동적 뷰포트 높이 */
+  --vh: 1vh;
+  --dvh: 1dvh;
+  
+  /* 색상 시스템 */
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  
+  /* 게임 색상 */
+  --color-fresh: #ff0000;
+  --color-chill: #ffcc00;
+  
+  /* 애니메이션 easing */
+  --ease-apple: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* 완전한 리셋 및 기본 설정 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  
+  /* 터치 최적화 */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  
+  /* 폰트 렌더링 최적화 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-smooth: always;
+  text-rendering: optimizeLegibility;
+}
+
+/* HTML 기본 설정 */
 html {
   height: 100%;
+  height: 100vh;
+  height: 100dvh;
   height: -webkit-fill-available;
   width: 100%;
+  
+  /* 스크롤 방지 */
   overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  
+  /* 텍스트 크기 조정 방지 */
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  user-select: none;
+  
+  /* 기본 폰트 */
+  font-family: var(--font-apple);
+  font-weight: var(--font-weight-regular);
+  font-size: 16px;
+  line-height: 1.5;
+  
+  /* 색상 */
+  color: var(--color-black);
+  background-color: var(--color-white);
 }
 
+/* Body 최적화 */
 body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
+  height: 100vh;
+  height: 100dvh;
   height: -webkit-fill-available;
+  
+  /* 위치 고정 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  
+  /* 스크롤 방지 */
   overflow: hidden;
   overscroll-behavior: none;
-  font-family: 'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, sans-serif;
+  
+  /* 터치 최적화 */
   touch-action: manipulation;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   user-select: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  background: #ffffff;
+  
+  /* 폰트 설정 */
+  font-family: var(--font-apple);
+  font-weight: var(--font-weight-light);
+  
+  /* 배경 */
+  background-color: var(--color-white);
 }
 
+/* Root 컨테이너 */
 #root {
   width: 100%;
   height: 100vh;
@@ -55,65 +133,116 @@ body {
   padding: 0;
   overflow: hidden;
   position: relative;
+  
+  /* 배경 */
+  background-color: var(--color-white);
 }
 
-/* iOS Safari 특정 이슈 해결 */
+/* iOS Safari 특정 처리 */
 @supports (-webkit-touch-callout: none) {
-  html {
-    height: -webkit-fill-available;
-  }
-  
-  body {
-    height: -webkit-fill-available;
-  }
-  
+  html,
+  body,
   #root {
     height: -webkit-fill-available;
   }
+  
+  /* iOS 주소창 숨김 대응 */
+  body {
+    min-height: -webkit-fill-available;
+  }
 }
 
-/* 모바일 브라우저 줌 방지 */
-input, 
-textarea, 
-select, 
+/* iOS 14+ 대응 */
+@supports (height: 100dvh) {
+  html,
+  body,
+  #root {
+    height: 100dvh;
+  }
+}
+
+/* 폼 요소 최적화 */
+input,
+textarea,
+select,
 button {
+  /* 줌 방지를 위한 최소 폰트 크기 */
   font-size: 16px !important;
+  
+  /* 기본 스타일 제거 */
   -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
   border-radius: 0;
-  background-color: transparent;
+  border: none;
+  background: none;
+  outline: none;
+  
+  /* 폰트 상속 */
+  font-family: inherit;
+  font-weight: inherit;
+  
+  /* 터치 최적화 */
+  touch-action: manipulation;
 }
 
+/* 입력 요소 포커스 최적화 */
 input:focus,
 textarea:focus,
 select:focus {
   outline: none;
   -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
   zoom: 1;
+  
+  /* iOS 줌 방지 */
+  font-size: 16px !important;
 }
 
-/* 터치 최적화 */
-button, 
+/* 버튼 및 인터랙티브 요소 */
+button,
 [role="button"],
 a,
-.touchable {
+.touchable,
+.interactive {
+  /* 터치 최적화 */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  
+  /* 최소 터치 타겟 크기 (iOS HIG) */
   min-height: 44px;
   min-width: 44px;
+  
+  /* 커서 */
   cursor: pointer;
-  transition: transform 0.1s ease;
+  
+  /* 기본 애니메이션 */
+  transition: transform 0.1s var(--ease-apple),
+              opacity 0.1s var(--ease-apple);
+  
+  /* 폰트 */
+  font-family: var(--font-apple);
+  font-weight: var(--font-weight-light);
 }
 
+/* 터치 피드백 */
 button:active,
 [role="button"]:active,
 a:active,
-.touchable:active {
+.touchable:active,
+.interactive:active {
   transform: scale(0.95);
+  transition: transform 0.1s var(--ease-apple);
 }
 
-/* 뷰포트 높이 유틸리티 */
+/* 링크 스타일 리셋 */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 모바일 뷰포트 유틸리티 클래스 */
 .h-screen-mobile {
   height: 100vh;
   height: 100dvh;
@@ -126,7 +255,11 @@ a:active,
   min-height: -webkit-fill-available;
 }
 
-/* 드래그/선택 방지 */
+.w-screen-mobile {
+  width: 100vw;
+}
+
+/* 드래그 방지 */
 .no-drag {
   -webkit-user-drag: none;
   -khtml-user-drag: none;
@@ -135,6 +268,7 @@ a:active,
   user-drag: none;
 }
 
+/* 선택 방지 */
 .no-select {
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -143,22 +277,246 @@ a:active,
   -webkit-touch-callout: none;
 }
 
-/* 성능 최적화 */
+/* 성능 최적화 - GPU 가속 */
 .gpu-accelerated {
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-/* 모바일 최적화 텍스트 크기 */
+/* 부드러운 스크롤 (사용시에만) */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* 안전 영역 대응 */
+.safe-area-inset {
+  padding-top: max(1.5rem, env(safe-area-inset-top));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
+}
+
+.safe-area-top {
+  padding-top: max(1.5rem, env(safe-area-inset-top));
+}
+
+.safe-area-bottom {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+/* 타이포그래피 최적화 */
+.text-apple {
+  font-family: var(--font-apple);
+}
+
+.font-ultralight {
+  font-weight: var(--font-weight-ultralight);
+}
+
+.font-thin {
+  font-weight: var(--font-weight-thin);
+}
+
+.font-light {
+  font-weight: var(--font-weight-light);
+}
+
+.font-regular {
+  font-weight: var(--font-weight-regular);
+}
+
+.font-medium {
+  font-weight: var(--font-weight-medium);
+}
+
+.font-semibold {
+  font-weight: var(--font-weight-semibold);
+}
+
+.font-bold {
+  font-weight: var(--font-weight-bold);
+}
+
+/* 숫자 폰트 최적화 */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 트래킹 (자간) 유틸리티 */
+.tracking-apple {
+  letter-spacing: -0.01em;
+}
+
+.tracking-apple-wide {
+  letter-spacing: 0.2em;
+}
+
+.tracking-apple-wider {
+  letter-spacing: 0.3em;
+}
+
+/* 색상 유틸리티 */
+.text-fresh {
+  color: var(--color-fresh);
+}
+
+.text-chill {
+  color: var(--color-chill);
+}
+
+.bg-fresh {
+  background-color: var(--color-fresh);
+}
+
+.bg-chill {
+  background-color: var(--color-chill);
+}
+
+/* 애니메이션 클래스 */
+.animate-fade-in {
+  animation: fadeIn 0.3s var(--ease-apple) forwards;
+}
+
+.animate-fade-out {
+  animation: fadeOut 0.3s var(--ease-apple) forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s var(--ease-out-expo) forwards;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.4s var(--ease-out-expo) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s var(--ease-spring) forwards;
+}
+
+/* 애니메이션 키프레임 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 게임 특화 애니메이션 */
+.glow-fresh {
+  box-shadow: 0 0 20px var(--color-fresh);
+  animation: glowFresh 1s ease-in-out infinite alternate;
+}
+
+.glow-chill {
+  box-shadow: 0 0 20px var(--color-chill);
+  animation: glowChill 1s ease-in-out infinite alternate;
+}
+
+@keyframes glowFresh {
+  from {
+    box-shadow: 0 0 10px var(--color-fresh);
+  }
+  to {
+    box-shadow: 0 0 30px var(--color-fresh), 0 0 40px var(--color-fresh);
+  }
+}
+
+@keyframes glowChill {
+  from {
+    box-shadow: 0 0 10px var(--color-chill);
+  }
+  to {
+    box-shadow: 0 0 30px var(--color-chill), 0 0 40px var(--color-chill);
+  }
+}
+
+/* 반응형 타이포그래피 */
 @media (max-width: 640px) {
   .text-8xl { 
     font-size: 4rem; 
     line-height: 1;
   }
+  
+  .text-7xl {
+    font-size: 3.5rem;
+    line-height: 1;
+  }
+  
+  .text-6xl {
+    font-size: 3rem;
+    line-height: 1;
+  }
+  
+  /* 모바일에서 더 가벼운 폰트 */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: var(--font-weight-light);
+  }
 }
 
-/* 접근성 - 모션 감소 */
+/* 고해상도 디스플레이 최적화 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* 다크 모드 대응 (시스템 설정) */
+@media (prefers-color-scheme: dark) {
+  /* 다크 모드는 현재 비활성화 - 게임의 디자인이 라이트 모드 기준 */
+  /* 필요시 활성화 */
+}
+
+/* 접근성 - 모션 감소 설정 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -166,5 +524,78 @@ a:active,
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* 중요한 애니메이션은 유지하되 단축 */
+  .glow-fresh,
+  .glow-chill {
+    animation: none;
+    box-shadow: 0 0 10px currentColor;
+  }
+}
+
+/* 고대비 모드 지원 */
+@media (prefers-contrast: high) {
+  :root {
+    --color-gray-300: #000000;
+    --color-gray-400: #000000;
+    --color-gray-500: #000000;
+  }
+  
+  button,
+  .interactive {
+    border: 2px solid currentColor;
+  }
+}
+
+/* 강제 색상 모드 대응 */
+@media (forced-colors: active) {
+  button,
+  .interactive {
+    forced-color-adjust: none;
+    border: 2px solid ButtonText;
+  }
+}
+
+/* Landscape 모드 최적화 */
+@media (orientation: landscape) and (max-height: 500px) {
+  .safe-area-inset {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* 접이식 폰 대응 */
+@media (max-width: 280px) {
+  html {
+    font-size: 14px;
+  }
+  
+  .text-8xl { 
+    font-size: 3rem; 
+  }
+  
+  .text-7xl {
+    font-size: 2.5rem;
+  }
+  
+  .text-6xl {
+    font-size: 2rem;
+  }
+}
+
+/* 큰 화면에서의 최적화 */
+@media (min-width: 1024px) {
+  /* 데스크톱에서는 모바일 전용 스타일 비활성화 */
+  body {
+    position: static;
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  #root {
+    height: auto;
+    min-height: 100vh;
   }
 }

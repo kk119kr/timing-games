@@ -509,7 +509,7 @@ export default function FreshGame() {
     <motion.div 
       className="h-screen-mobile w-screen flex flex-col bg-white relative overflow-hidden touch-none"
       style={{
-        height: '100vh',
+        
         height: '100dvh',
         width: '100vw',
         position: 'fixed',
