@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, useMotionValue, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import QRCode from 'qrcode'
 import { createRoom } from '../lib/supabase'
 
 export default function Home() {
@@ -9,8 +8,8 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [currentGame, setCurrentGame] = useState<'fresh' | 'chill' | null>(null)
   const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 })
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
-  const [showQR, setShowQR] = useState(false)
+  const [showJoinModal, setShowJoinModal] = useState(false)
+  const [roomCode, setRoomCode] = useState('')
   
   const y = useMotionValue(0)
   const constraintRef = useRef<HTMLDivElement>(null)
@@ -49,25 +48,12 @@ export default function Home() {
     return () => window.removeEventListener('resize', updateButtonPosition)
   }, [])
   
-  const createGameRoomAndQR = async (gameType: 'fresh' | 'chill'): Promise<string | null> => {
+  const createGameRoom = async (gameType: 'fresh' | 'chill'): Promise<string | null> => {
     try {
       const userId = localStorage.getItem('userId') || `user_${Date.now()}`
       localStorage.setItem('userId', userId)
       
       const room = await createRoom(gameType, userId)
-      
-      const roomUrl = `${window.location.origin}/room/${room.id}`
-      const qrUrl = await QRCode.toDataURL(roomUrl, {
-        width: 160, // QR코드 실제 크기 (CreateRoom의 패딩 제외한 크기)
-        margin: 1,
-        color: {
-          dark: '#000000',
-          light: '#ffffff'
-        },
-        errorCorrectionLevel: 'M'
-      })
-      
-      setQrCodeUrl(qrUrl)
       return room.id
     } catch (error) {
       console.error('방 생성 실패:', error)
@@ -92,23 +78,26 @@ export default function Home() {
       
       setIsTransitioning(true)
       
-      // QR코드 미리 생성
-      const newRoomId = await createGameRoomAndQR(game)
+      // 방 생성
+      const newRoomId = await createGameRoom(game)
       
       if (newRoomId) {
-        // QR 코드가 준비되면 보여주기
-        setTimeout(() => {
-          setShowQR(true)
-        }, 600) // 모핑이 어느정도 진행된 후
-        
         setTimeout(() => {
           navigate(`/create/${game}`)
-        }, 1200) // QR이 완전히 나타난 후
+        }, 800) // 모핑 애니메이션 완료 후
       } else {
         setIsTransitioning(false)
       }
     }
   }
+  
+  const handleJoinRoom = () => {
+    if (roomCode.trim() && roomCode.length === 4) {
+      navigate(`/room/${roomCode.trim()}`)
+    }
+  }
+  
+
   
   return (
     <motion.div 
@@ -126,6 +115,25 @@ export default function Home() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
+      {/* 상단 JOIN 버튼 */}
+      <motion.button
+        onClick={() => setShowJoinModal(true)}
+        className="absolute top-6 right-6 z-10 w-16 h-12 border-2 border-black rounded-full text-black hover:bg-black hover:text-white transition-all duration-300 text-sm font-light tracking-[0.1em]"
+        style={{
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+          fontWeight: 300,
+          top: 'max(1.5rem, env(safe-area-inset-top))',
+          right: 'max(1.5rem, env(safe-area-inset-right))'
+        }}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        JOIN
+      </motion.button>
+      
       {/* 상단 FRESH 영역 */}
       <motion.div
         className="absolute top-0 left-0 right-0 flex items-center justify-center border-b border-gray-100"
@@ -194,7 +202,7 @@ export default function Home() {
         <motion.div
           className="absolute"
           style={{ 
-            top: '-32px',
+            top: '-50px',
             left: '50%',
             transform: 'translateX(-50%)'
           }}
@@ -213,7 +221,7 @@ export default function Home() {
         <motion.div
           className="absolute"
           style={{ 
-            bottom: '-32px',
+            bottom: '-50px',
             left: '50%',
             transform: 'translateX(-50%)'
           }}
@@ -228,7 +236,7 @@ export default function Home() {
           </svg>
         </motion.div>
         
-        {/* 드래그 버튼 - 애플 스타일 */}
+        {/* 원형 드래그 버튼 */}
         <motion.div
           ref={buttonRef}
           drag="y"
@@ -240,9 +248,8 @@ export default function Home() {
           whileDrag={{ scale: 1.05 }}
         >
           <motion.div
-            className="w-14 h-14 sm:w-12 sm:h-12 bg-white backdrop-blur-sm border border-gray-200 flex items-center justify-center"
+            className="w-20 h-20 sm:w-24 sm:h-24 bg-white backdrop-blur-sm border-2 border-gray-200 rounded-full flex items-center justify-center"
             style={{
-              borderRadius: '20px',
               boxShadow: currentGame ? 
                 '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)' : 
                 '0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04)'
@@ -254,11 +261,16 @@ export default function Home() {
             }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
           >
-            {/* 중앙 인디케이터 - 미니멀 도트 */}
-            <motion.div
-              className="flex flex-col space-y-1"
+            {/* Slide! 텍스트 */}
+            <motion.span
+              className="text-xs sm:text-sm font-light tracking-[0.1em]"
+              style={{
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                fontWeight: 300,
+                color: currentGame ? '#ffffff' : '#000000'
+              }}
               animate={{
-                opacity: [0.4, 1, 0.4]
+                opacity: [0.7, 1, 0.7]
               }}
               transition={{ 
                 duration: currentGame ? 1 : 2.5,
@@ -266,30 +278,13 @@ export default function Home() {
                 ease: "easeInOut" 
               }}
             >
-              <motion.div 
-                className="w-1 h-1 rounded-full mx-auto"
-                style={{
-                  backgroundColor: currentGame ? '#ffffff' : '#000000'
-                }}
-              />
-              <motion.div 
-                className="w-1 h-1 rounded-full mx-auto"
-                style={{
-                  backgroundColor: currentGame ? '#ffffff' : '#000000'
-                }}
-              />
-              <motion.div 
-                className="w-1 h-1 rounded-full mx-auto"
-                style={{
-                  backgroundColor: currentGame ? '#ffffff' : '#000000'
-                }}
-              />
-            </motion.div>
+              Slide!
+            </motion.span>
           </motion.div>
         </motion.div>
       </motion.div>
       
-      {/* 실제 QR코드로 모핑 트랜지션 */}
+      {/* 사각형 테두리로 모핑 트랜지션 */}
       <AnimatePresence>
         {isTransitioning && (
           <motion.div
@@ -306,60 +301,119 @@ export default function Home() {
               transition={{ duration: 0.3, delay: 0.2 }}
             />
             
-            {/* 실제 QR코드로 모핑하는 버튼 */}
+            {/* 사각형 테두리로 모핑하는 버튼 */}
             <motion.div
               className="absolute bg-white border-2 border-black flex items-center justify-center overflow-hidden"
               style={{
-                left: buttonPosition.x - 28, // 버튼 크기의 절반 (56px/2)
-                top: buttonPosition.y - 28,
+                left: buttonPosition.x - 40, // 원형 버튼 크기의 절반 (80px/2)
+                top: buttonPosition.y - 40,
               }}
               initial={{
-                width: 56,
-                height: 56,
-                borderRadius: 20,
+                width: 80,
+                height: 80,
+                borderRadius: '50%',
               }}
               animate={{
                 left: '50%',
-                top: 'calc(50% - 80px)', // CreateRoom의 QR코드 위치에 맞춤
+                top: '50%',
                 x: '-50%',
-                y: '-50%',
-                width: 192, // CreateRoom QR 컨테이너 크기
-                height: 192,
-                borderRadius: 16, // CreateRoom의 rounded-2xl
+                y: '-96px', // CreateRoom의 QR 위치에 맞춤 (중앙에서 위로)
+                width: window.innerWidth < 475 ? 160 : 192, // w-40 h-40 xs:w-48 xs:h-48
+                height: window.innerWidth < 475 ? 160 : 192,
+                borderRadius: 16, // rounded-2xl
               }}
               transition={{
-                duration: 0.8,
+                duration: 0.6,
                 ease: [0.4, 0, 0.2, 1]
               }}
             >
-              {/* 초기 도트들 - 페이드 아웃 */}
-              <motion.div
-                className="absolute flex flex-col space-y-1"
+              {/* 초기 텍스트 - 페이드 아웃 */}
+              <motion.span
+                className="text-xs sm:text-sm font-light tracking-[0.1em] text-black"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  fontWeight: 300
+                }}
                 initial={{ opacity: 1 }}
                 animate={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.2 }}
               >
-                <div className="w-1 h-1 rounded-full bg-black mx-auto" />
-                <div className="w-1 h-1 rounded-full bg-black mx-auto" />
-                <div className="w-1 h-1 rounded-full bg-black mx-auto" />
-              </motion.div>
+                Slide!
+              </motion.span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* JOIN 모달 */}
+      <AnimatePresence>
+        {showJoinModal && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowJoinModal(false)}
+          >
+            <motion.div
+              className="bg-white rounded-2xl p-6 sm:p-8 w-80 max-w-sm mx-4"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 
+                className="text-xl sm:text-2xl font-light tracking-[0.2em] text-center text-black mb-6"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  fontWeight: 300
+                }}
+              >
+                JOIN ROOM
+              </h2>
               
-              {/* 실제 QR코드로 변환 */}
-              <AnimatePresence>
-                {showQR && qrCodeUrl && (
-                  <motion.img
-                    src={qrCodeUrl}
-                    alt="QR Code"
-                    className="absolute inset-4 w-auto h-auto object-contain"
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ 
-                      duration: 0.4,
-                      ease: [0.4, 0, 0.2, 1]
-                    }}
-                  />
-                )}
-              </AnimatePresence>
+              <input
+                type="text"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                placeholder="방 코드 입력"
+                maxLength={4}
+                className="w-full h-14 px-4 text-center text-2xl font-light tracking-[0.3em] border-2 border-gray-200 rounded-xl focus:border-black transition-colors mb-6"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  fontWeight: 300,
+                  fontVariantNumeric: 'tabular-nums'
+                }}
+                autoFocus
+              />
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowJoinModal(false)}
+                  className="flex-1 h-12 border-2 border-gray-300 rounded-full text-gray-600 font-light tracking-[0.1em] hover:bg-gray-50 transition-all duration-300"
+                  style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    fontWeight: 300
+                  }}
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleJoinRoom}
+                  disabled={roomCode.length !== 4}
+                  className={`flex-1 h-12 rounded-full font-light tracking-[0.1em] transition-all duration-300 ${
+                    roomCode.length === 4
+                      ? 'bg-black text-white hover:bg-gray-800'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                  style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    fontWeight: 300
+                  }}
+                >
+                  입장
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
