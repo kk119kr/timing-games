@@ -196,17 +196,34 @@ export default function FreshGame() {
     }
   }
 
-  // 현재 사용자의 누적 점수 계산
+  // 라운드 결과를 DB에서 로드하는 함수
+  const loadRoundResultsFromDB = (gameState: any) => {
+    if (gameState.round_scores && Array.isArray(gameState.round_scores)) {
+      // DB의 round_scores 형식을 RoundResult[] 형식으로 변환
+      const convertedResults: RoundResult[][] = gameState.round_scores.map((roundScores: Record<string, number>) => {
+        return Object.entries(roundScores).map(([participantId, score]) => ({
+          participantId,
+          pressTime: 0, // 저장되지 않으므로 기본값
+          score
+        }))
+      })
+      setRoundResults(convertedResults)
+    }
+  }
+
+  // 현재 사용자의 누적 점수 계산 (DB 기반)
   const getCurrentUserTotalScore = () => {
     const userId = localStorage.getItem('userId')
     let totalScore = 0
     
-    roundResults.forEach((round: RoundResult[]) => {
-      const userResult = round.find(r => r.participantId === userId)
-      if (userResult) {
-        totalScore += userResult.score
-      }
-    })
+    // DB에서 로드된 라운드 결과 사용
+    if (room?.game_state?.round_scores && Array.isArray(room.game_state.round_scores)) {
+      room.game_state.round_scores.forEach((roundScores: Record<string, number>) => {
+        if (roundScores[userId!] !== undefined) {
+          totalScore += roundScores[userId!]
+        }
+      })
+    }
     
     return totalScore
   }
@@ -276,6 +293,9 @@ export default function FreshGame() {
         setCurrentRound(data.game_state.current_round)
       }
       
+      // DB에서 라운드 결과 로드
+      loadRoundResultsFromDB(data.game_state)
+      
       if (isHost && !data.game_state?.countdown_started && !data.game_state?.round_start_time) {
         setTimeout(() => startCountdownAsHost(), 1000)
       } else if (data.game_state?.countdown_started) {
@@ -292,6 +312,9 @@ export default function FreshGame() {
     if (!newRoom) return
     
     setRoomWithRef(newRoom)
+    
+    // DB에서 라운드 결과 동기화
+    loadRoundResultsFromDB(newRoom.game_state)
     
     const gameState = newRoom.game_state
     const currentGamePhase = gamePhaseRef.current
@@ -498,7 +521,19 @@ export default function FreshGame() {
       if (fetchError) throw fetchError
       
       const results = calculateScores(currentRoom.participants)
+      
+      // 로컬 상태 업데이트
       setRoundResults(prev => [...prev, results])
+      
+      // DB에 라운드 점수 저장 (모든 참가자가 동기화할 수 있도록)
+      const existingRoundScores = currentRoom.game_state?.round_scores || []
+      const roundScoreRecord: Record<string, number> = {}
+      
+      results.forEach(result => {
+        roundScoreRecord[result.participantId] = result.score
+      })
+      
+      const updatedRoundScores = [...existingRoundScores, roundScoreRecord]
       
       const resetParticipants = resetParticipantsState(currentRoom.participants)
       const currentRoundNumber = currentRoom.game_state?.current_round || currentRound
@@ -508,7 +543,8 @@ export default function FreshGame() {
         current_round: currentRoundNumber,
         round_end: true,
         round_start_time: null,
-        countdown_started: false
+        countdown_started: false,
+        round_scores: updatedRoundScores // DB에 라운드 점수 저장
       }
       
       await supabase
@@ -578,6 +614,7 @@ export default function FreshGame() {
       const resetParticipants = resetParticipantsState(currentRoom.participants)
       
       const newGameState = {
+        ...currentRoom.game_state,
         round_end: false,
         countdown_started: true,
         countdown_start_time: Date.now(),
@@ -605,11 +642,16 @@ export default function FreshGame() {
       totalScores[p.id] = 0
     })
     
-    roundResults.forEach((round: RoundResult[]) => {
-      round.forEach((result: RoundResult) => {
-        totalScores[result.participantId] += result.score
+    // DB에서 로드된 라운드 점수 사용
+    if (room?.game_state?.round_scores && Array.isArray(room.game_state.round_scores)) {
+      room.game_state.round_scores.forEach((roundScores: Record<string, number>) => {
+        Object.entries(roundScores).forEach(([participantId, score]) => {
+          if (totalScores[participantId] !== undefined) {
+            totalScores[participantId] += score
+          }
+        })
       })
-    })
+    }
     
     return Object.entries(totalScores)
       .map(([id, score]) => ({
@@ -721,8 +763,8 @@ export default function FreshGame() {
           ←
         </motion.button>
         
-        {/* 누적 점수 표시 */}
-        {roundResults.length > 0 && !showResults && (
+        {/* 누적 점수 표시 - DB 기반으로 수정 */}
+        {room?.game_state?.round_scores && room.game_state.round_scores.length > 0 && !showResults && (
           <motion.div
             className="flex items-center space-x-2"
             initial={{ opacity: 0, scale: 0.8 }}
