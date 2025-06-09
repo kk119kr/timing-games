@@ -26,6 +26,7 @@ export default function FreshGame() {
   const [roundEndMessage, setRoundEndMessage] = useState<string>('')
   const [gamePhase, setGamePhase] = useState<GamePhase>('waiting')
   const [explosionParticles, setExplosionParticles] = useState<any[]>([])
+  const [totalScore, setTotalScore] = useState(0) // 추가: 개별 토탈 점수 상태
   
   const colorInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const roundStartTime = useRef<number>(0)
@@ -86,37 +87,31 @@ export default function FreshGame() {
     const notPressed = participants.filter(p => p.has_pressed !== true)
     const totalParticipants = participants.length
     
-    // 전체 인원 수에 따른 가장 낮은 점수 계산
     const getLowestScore = (totalCount: number) => {
       if (totalCount % 2 === 0) {
-        return -(totalCount / 2)  // 짝수: -n/2
+        return -(totalCount / 2)
       } else {
-        return -Math.floor(totalCount / 2)  // 홀수: -floor(n/2)
+        return -Math.floor(totalCount / 2)
       }
     }
     
     const lowestScore = getLowestScore(totalParticipants)
-    const explosionScore = lowestScore * 2  // 폭발 점수는 가장 낮은 점수 * 2
+    const explosionScore = lowestScore * 2
     
     const results: RoundResult[] = []
     const totalPressed = pressed.length
     
-    // 누른 사람들의 점수 계산
     pressed.forEach((p: any, index: number) => {
       let score = 0
       
       if (totalPressed === 1) {
-        // 혼자만 눌렀을 때는 전체 인원 기준 가장 낮은 점수
         score = lowestScore
       } else if (totalPressed === 2) {
-        // 2명: 첫 번째는 가장 낮은 점수, 두 번째는 그 반대
         score = index === 0 ? lowestScore : -lowestScore
       } else {
-        // 3명 이상: 균등하게 분배하되 첫 번째는 가장 낮은 점수
         const middle = Math.floor(totalPressed / 2)
         
         if (totalPressed % 2 === 1) {
-          // 홀수: 중간은 0점
           if (index < middle) {
             score = -(middle - index)
           } else if (index === middle) {
@@ -125,7 +120,6 @@ export default function FreshGame() {
             score = index - middle
           }
         } else {
-          // 짝수: 중간 없이 분배
           if (index < middle) {
             score = -(middle - index)
           } else {
@@ -141,7 +135,6 @@ export default function FreshGame() {
       })
     })
     
-    // 누르지 않은 사람들(폭발당한 사람들)은 가장 낮은 점수 * 2
     notPressed.forEach((p: any) => {
       results.push({
         participantId: p.id,
@@ -155,30 +148,26 @@ export default function FreshGame() {
 
   // 개선된 실시간 점수 계산
   const calculatePressedScore = (index: number, totalPressed: number, totalParticipants: number) => {
-    // 전체 인원 수에 따른 가장 낮은 점수 계산
     const getLowestScore = (totalCount: number) => {
       if (totalCount % 2 === 0) {
-        return -(totalCount / 2)  // 짝수: -n/2
+        return -(totalCount / 2)
       } else {
-        return -Math.floor(totalCount / 2)  // 홀수: -floor(n/2)
+        return -Math.floor(totalCount / 2)
       }
     }
     
     const lowestScore = getLowestScore(totalParticipants)
     
     if (totalPressed === 1) {
-      // 혼자만 눌렀을 때는 전체 인원 기준 가장 낮은 점수
       return lowestScore
     }
     if (totalPressed === 2) {
-      // 2명: 첫 번째는 가장 낮은 점수, 두 번째는 그 반대
       return index === 0 ? lowestScore : -lowestScore
     }
     
     const middle = Math.floor(totalPressed / 2)
     
     if (totalPressed % 2 === 1) {
-      // 홀수
       if (index < middle) {
         return -(middle - index)
       } else if (index === middle) {
@@ -187,7 +176,6 @@ export default function FreshGame() {
         return index - middle
       }
     } else {
-      // 짝수
       if (index < middle) {
         return -(middle - index)
       } else {
@@ -196,42 +184,47 @@ export default function FreshGame() {
     }
   }
 
-  // 라운드 결과를 DB에서 로드하는 함수
+  // 🔥 핵심 수정: 라운드 결과를 DB에서 로드하고 즉시 상태 동기화
   const loadRoundResultsFromDB = (gameState: any) => {
+    console.log('🔍 Loading round results from DB:', gameState.round_scores)
+    
     if (gameState.round_scores && Array.isArray(gameState.round_scores)) {
       // DB의 round_scores 형식을 RoundResult[] 형식으로 변환
       const convertedResults: RoundResult[][] = gameState.round_scores.map((roundScores: Record<string, number>) => {
         return Object.entries(roundScores).map(([participantId, score]) => ({
           participantId,
-          pressTime: 0, // 저장되지 않으므로 기본값
+          pressTime: 0,
           score
         }))
       })
+      
+      console.log('✅ Converted round results:', convertedResults)
       setRoundResults(convertedResults)
+      
+      // 🔥 즉시 토탈 점수 업데이트
+      const userId = localStorage.getItem('userId')
+      let newTotalScore = 0
+      
+      gameState.round_scores.forEach((roundScores: Record<string, number>) => {
+        if (roundScores[userId!] !== undefined) {
+          newTotalScore += roundScores[userId!]
+        }
+      })
+      
+      console.log('💯 Updated total score for user:', userId, 'Score:', newTotalScore)
+      setTotalScore(newTotalScore)
     }
   }
 
-  // 현재 사용자의 누적 점수 계산 (DB 기반)
+  // 🔥 수정된 토탈 점수 계산 - 상태 기반으로 변경
   const getCurrentUserTotalScore = () => {
-    const userId = localStorage.getItem('userId')
-    let totalScore = 0
-    
-    // DB에서 로드된 라운드 결과 사용
-    if (room?.game_state?.round_scores && Array.isArray(room.game_state.round_scores)) {
-      room.game_state.round_scores.forEach((roundScores: Record<string, number>) => {
-        if (roundScores[userId!] !== undefined) {
-          totalScore += roundScores[userId!]
-        }
-      })
-    }
-    
     return totalScore
   }
 
   // 강화된 폭발 애니메이션
   const createExplosionParticles = () => {
     const particles = []
-    const particleCount = 30 // 파티클 수 증가
+    const particleCount = 30
     
     for (let i = 0; i < particleCount; i++) {
       const angle = (i / particleCount) * 2 * Math.PI
@@ -246,13 +239,12 @@ export default function FreshGame() {
         vy: Math.sin(angle) * velocity,
         size: size,
         life: 1,
-        color: `hsl(${Math.random() * 60}, 100%, ${50 + Math.random() * 30}%)`, // 빨강-노랑 계열
+        color: `hsl(${Math.random() * 60}, 100%, ${50 + Math.random() * 30}%)`,
       })
     }
     
     setExplosionParticles(particles)
     
-    // 파티클 정리
     setTimeout(() => {
       setExplosionParticles([])
     }, 2000)
@@ -293,7 +285,7 @@ export default function FreshGame() {
         setCurrentRound(data.game_state.current_round)
       }
       
-      // DB에서 라운드 결과 로드
+      // 🔥 초기 로드 시 DB에서 라운드 결과 동기화
       loadRoundResultsFromDB(data.game_state)
       
       if (isHost && !data.game_state?.countdown_started && !data.game_state?.round_start_time) {
@@ -307,13 +299,16 @@ export default function FreshGame() {
     }
   }
   
+  // 🔥 핵심 수정: 실시간 업데이트 처리 강화
   const handleRoomUpdate = (payload: any) => {
     const newRoom = payload.new as GameRoom
     if (!newRoom) return
     
+    console.log('🔄 Room update received:', newRoom.game_state)
+    
     setRoomWithRef(newRoom)
     
-    // DB에서 라운드 결과 동기화
+    // 🔥 모든 업데이트에서 DB 라운드 결과 동기화
     loadRoundResultsFromDB(newRoom.game_state)
     
     const gameState = newRoom.game_state
@@ -344,7 +339,9 @@ export default function FreshGame() {
       return
     }
     
+    // 🔥 라운드 종료 처리 개선
     if (gameState.round_end && !gameState.round_start_time) {
+      console.log('🏁 Round ended, handling results...')
       handleRoundEnd(newRoom)
     }
   }
@@ -491,12 +488,8 @@ export default function FreshGame() {
   }
   
   const handleExplosion = () => {
-    // 진동 강화
     navigator.vibrate?.([100, 50, 200, 50, 300])
-    
-    // 폭발 파티클 생성
     createExplosionParticles()
-    
     setButtonColor(100)
     setRoundEndMessage('BOOM')
     
@@ -522,10 +515,12 @@ export default function FreshGame() {
       
       const results = calculateScores(currentRoom.participants)
       
+      console.log('🏆 Round results calculated:', results)
+      
       // 로컬 상태 업데이트
       setRoundResults(prev => [...prev, results])
       
-      // DB에 라운드 점수 저장 (모든 참가자가 동기화할 수 있도록)
+      // DB에 라운드 점수 저장
       const existingRoundScores = currentRoom.game_state?.round_scores || []
       const roundScoreRecord: Record<string, number> = {}
       
@@ -534,6 +529,8 @@ export default function FreshGame() {
       })
       
       const updatedRoundScores = [...existingRoundScores, roundScoreRecord]
+      
+      console.log('💾 Saving round scores to DB:', updatedRoundScores)
       
       const resetParticipants = resetParticipantsState(currentRoom.participants)
       const currentRoundNumber = currentRoom.game_state?.current_round || currentRound
@@ -544,7 +541,7 @@ export default function FreshGame() {
         round_end: true,
         round_start_time: null,
         countdown_started: false,
-        round_scores: updatedRoundScores // DB에 라운드 점수 저장
+        round_scores: updatedRoundScores
       }
       
       await supabase
@@ -555,20 +552,28 @@ export default function FreshGame() {
         })
         .eq('id', roomId)
       
+      console.log('✅ Round end data saved to DB')
+      
     } catch (error) {
       console.error('Failed to end round:', error)
     }
   }
   
+  // 🔥 라운드 종료 처리 개선
   const handleRoundEnd = async (newRoom: GameRoom) => {
     const gameState = newRoom.game_state
     const endedRound = gameState.current_round || currentRound
+    
+    console.log('🏁 Handling round end for round:', endedRound)
     
     setGamePhaseWithRef('round-end')
     setRoundEndMessage(`ROUND ${endedRound}`)
     
     resetGameFlags()
     clearColorInterval()
+    
+    // 🔥 라운드 종료 시 점수 다시 동기화
+    loadRoundResultsFromDB(gameState)
     
     setTimeout(() => setRoundEndMessage(''), 2000)
     
@@ -635,6 +640,7 @@ export default function FreshGame() {
     }
   }
   
+  // 🔥 최종 점수 계산 개선 - roundResults 상태 사용
   const getFinalScores = () => {
     const totalScores: Record<string, number> = {}
     
@@ -642,16 +648,30 @@ export default function FreshGame() {
       totalScores[p.id] = 0
     })
     
-    // DB에서 로드된 라운드 점수 사용
+    // roundResults 상태에서 점수 계산
+    roundResults.forEach((roundResult) => {
+      roundResult.forEach((result) => {
+        if (totalScores[result.participantId] !== undefined) {
+          totalScores[result.participantId] += result.score
+        }
+      })
+    })
+    
+    // DB에서도 확인 (백업용)
     if (room?.game_state?.round_scores && Array.isArray(room.game_state.round_scores)) {
       room.game_state.round_scores.forEach((roundScores: Record<string, number>) => {
         Object.entries(roundScores).forEach(([participantId, score]) => {
           if (totalScores[participantId] !== undefined) {
-            totalScores[participantId] += score
+            // 이미 계산된 점수와 다르면 DB 값 사용
+            if (totalScores[participantId] === 0) {
+              totalScores[participantId] = score
+            }
           }
         })
       })
     }
+    
+    console.log('🏆 Final scores calculated:', totalScores)
     
     return Object.entries(totalScores)
       .map(([id, score]) => ({
@@ -715,7 +735,6 @@ export default function FreshGame() {
               />
             ))}
             
-            {/* 중앙 폭발 링 */}
             {[...Array(3)].map((_, i) => (
               <motion.div
                 key={`ring-${i}`}
@@ -749,7 +768,6 @@ export default function FreshGame() {
 
       {/* 상단 네비게이션 */}
       <div className="flex items-center justify-between mb-4 sm:mb-6">
-        {/* 뒤로가기 버튼 */}
         <motion.button
           onClick={() => navigate('/')}
           className="w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors"
@@ -763,8 +781,8 @@ export default function FreshGame() {
           ←
         </motion.button>
         
-        {/* 누적 점수 표시 - DB 기반으로 수정 */}
-        {room?.game_state?.round_scores && room.game_state.round_scores.length > 0 && !showResults && (
+        {/* 🔥 수정된 누적 점수 표시 */}
+        {roundResults.length > 0 && !showResults && (
           <motion.div
             className="flex items-center space-x-2"
             initial={{ opacity: 0, scale: 0.8 }}
@@ -795,7 +813,6 @@ export default function FreshGame() {
           </motion.div>
         )}
         
-        {/* 게임 타입 인디케이터 */}
         <motion.div
           className="w-12 h-12 rounded-full"
           style={{ backgroundColor: '#ff0000' }}
@@ -918,7 +935,6 @@ export default function FreshGame() {
             }}
             transition={{ duration: buttonColor > 80 ? 0.3 : 0 }}
           >
-            {/* 중앙 인디케이터 */}
             <motion.div
               className="w-3 h-3 sm:w-4 sm:h-4 rounded-full"
               style={{
@@ -935,7 +951,6 @@ export default function FreshGame() {
               }}
             />
             
-            {/* 폭발 효과 */}
             <AnimatePresence>
               {buttonColor >= 100 && (
                 <>
@@ -1063,7 +1078,6 @@ export default function FreshGame() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            {/* 상단 네비게이션 */}
             <div className="flex items-center justify-between mb-6 sm:mb-8">
               <motion.button
                 onClick={() => navigate('/')}
@@ -1093,7 +1107,6 @@ export default function FreshGame() {
               <div className="w-12" />
             </div>
             
-            {/* 스코어 리스트 */}
             <div className="flex-1 overflow-y-auto">
               <div className="max-w-sm mx-auto">
                 {getFinalScores().map((result: any, index: number) => (
@@ -1149,7 +1162,6 @@ export default function FreshGame() {
               </div>
             </div>
             
-            {/* 하단 버튼 */}
             <motion.button
               onClick={() => navigate('/')}
               className="w-full max-w-sm mx-auto py-4 sm:py-5 text-base sm:text-lg font-light tracking-[0.2em] border-2 border-black text-black hover:bg-black hover:text-white transition-all duration-300 rounded-full min-h-[56px]"
