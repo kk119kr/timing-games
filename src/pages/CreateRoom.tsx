@@ -62,62 +62,73 @@ export default function CreateRoom() {
   
   return (
     <motion.div 
-      className="h-screen w-screen flex flex-col items-center justify-center bg-white relative overflow-hidden"
+      className="h-screen-mobile w-screen flex flex-col bg-white relative overflow-hidden"
       style={{
         height: '100vh',
+        height: '100dvh',
         width: '100vw',
-        margin: 0,
-        padding: 0,
         position: 'fixed',
         top: 0,
-        left: 0
+        left: 0,
+        margin: 0,
+        padding: 0,
+        paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1.5rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1.5rem, env(safe-area-inset-right))'
       }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 뒤로가기 버튼 */}
-      <motion.button
-        onClick={() => navigate('/')}
-        className="absolute top-6 left-6 w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors z-50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        ←
-      </motion.button>
+      {/* 상단 네비게이션 */}
+      <div className="flex items-center justify-between mb-8 sm:mb-12">
+        {/* 뒤로가기 버튼 */}
+        <motion.button
+          onClick={() => navigate('/')}
+          className="w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          whileTap={{ scale: 0.9 }}
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
+          }}
+        >
+          ←
+        </motion.button>
+        
+        {/* 게임 타입 표시 */}
+        <motion.div
+          className="w-12 h-12 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: gameColor }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+        />
+      </div>
       
-      {/* 게임 타입 표시 */}
-      <motion.div
-        className="absolute top-6 right-6 w-12 h-12 rounded-full flex items-center justify-center"
-        style={{ backgroundColor: gameColor }}
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3 }}
-      />
-      
-      {/* 중앙 컨텐츠 */}
-      <motion.div
-        className="flex flex-col items-center"
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
+      {/* 중앙 컨텐츠 영역 */}
+      <div className="flex-1 flex flex-col items-center justify-center">
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div
               key="loading"
-              className="w-48 h-48 flex items-center justify-center"
+              className="w-40 h-40 xs:w-48 xs:h-48 flex items-center justify-center"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
               <motion.div
-                className="w-12 h-12 border-2 border-black rounded-full"
-                style={{ borderTopColor: 'transparent' }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              />
+                className="text-xl sm:text-2xl font-light tracking-[0.2em] text-gray-400"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  fontWeight: 300
+                }}
+              >
+                LOADING
+              </motion.div>
             </motion.div>
           ) : (
             <motion.div
@@ -129,7 +140,7 @@ export default function CreateRoom() {
             >
               {/* QR 코드 */}
               <motion.div
-                className="w-48 h-48 bg-white border-2 border-black rounded-2xl p-4 mb-8 flex items-center justify-center"
+                className="w-40 h-40 xs:w-48 xs:h-48 bg-white border-2 border-black rounded-2xl p-4 mb-8 sm:mb-12 flex items-center justify-center"
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -148,39 +159,44 @@ export default function CreateRoom() {
               
               {/* 방 ID */}
               <motion.div
-                className="text-center mb-12"
+                className="text-center mb-8 sm:mb-12"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.5 }}
               >
                 <motion.h1 
-                  className="text-6xl font-black tracking-[0.3em] text-black mb-4"
+                  className="text-4xl xs:text-5xl sm:text-6xl font-light tracking-[0.3em] text-black mb-4"
                   style={{ 
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                    fontVariantNumeric: 'tabular-nums'
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    fontVariantNumeric: 'tabular-nums',
+                    fontWeight: 300
                   }}
                 >
                   {roomId}
                 </motion.h1>
                 
                 <motion.div
-                  className="w-16 h-1 mx-auto"
+                  className="w-12 sm:w-16 h-1 mx-auto"
                   style={{ backgroundColor: gameColor }}
                   initial={{ width: 0 }}
-                  animate={{ width: 64 }}
+                  animate={{ width: window.innerWidth < 640 ? 48 : 64 }}
                   transition={{ delay: 0.7, duration: 0.5 }}
                 />
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
       
       {/* 하단 버튼 */}
       {roomId && (
         <motion.button
           onClick={handleGoToRoom}
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-64 h-12 border-2 border-black rounded-full text-black font-light tracking-[0.2em] hover:bg-black hover:text-white transition-all duration-300"
+          className="w-full max-w-sm mx-auto h-12 sm:h-14 border-2 border-black rounded-full text-black font-light tracking-[0.2em] hover:bg-black hover:text-white transition-all duration-300 min-h-[48px]"
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            fontWeight: 300
+          }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}

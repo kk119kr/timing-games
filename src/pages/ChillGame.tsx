@@ -203,13 +203,24 @@ export default function ChillGame() {
       <div 
         className="h-screen-mobile w-screen flex items-center justify-center bg-white"
         style={{
-          height: '100dvh'
+          height: '100vh',
+          height: '100dvh',
+          width: '100vw',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          margin: 0,
+          padding: 0
         }}
       >
         <motion.div
-          className="text-xl sm:text-2xl font-black tracking-[0.2em] text-gray-400"
+          className="text-xl sm:text-2xl font-light tracking-[0.2em] text-gray-400"
           animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 2, repeat: Infinity }}
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            fontWeight: 300
+          }}
         >
           LOADING
         </motion.div>
@@ -221,10 +232,20 @@ export default function ChillGame() {
   
   return (
     <motion.div 
-      className="h-screen w-screen flex flex-col items-center justify-center bg-white relative overflow-hidden touch-none"
+      className="h-screen-mobile w-screen flex flex-col bg-white relative overflow-hidden touch-none"
       style={{
         height: '100vh',
-        width: '100vw'
+        height: '100dvh',
+        width: '100vw',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        margin: 0,
+        padding: 0,
+        paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1.5rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1.5rem, env(safe-area-inset-right))'
       }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -279,160 +300,181 @@ export default function ChillGame() {
         )}
       </AnimatePresence>
       
-      {/* 뒤로가기 버튼 */}
-      <motion.button
-        onClick={() => navigate('/')}
-        className="absolute top-6 left-6 w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors z-50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        ←
-      </motion.button>
-      
-      {/* 게임 타입 인디케이터 */}
-      <motion.div
-        className="absolute top-6 right-6 w-12 h-12 rounded-full"
-        style={{ backgroundColor: '#ffcc00' }}
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3 }}
-      />
-      
-      {/* 당첨자 텍스트 */}
-      <AnimatePresence>
-        {showWinnerText && winner && (
-          <motion.div
-            className="absolute top-1/4 left-1/2 transform -translate-x-1/2 text-center z-30 px-6"
-            initial={{ opacity: 0, y: 30, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -30, scale: 0.8 }}
-            transition={{ 
-              type: "spring", 
-              stiffness: 400,
-              damping: 25,
-              delay: 0.1 
-            }}
-          >
-            <motion.p 
-              className="text-base sm:text-lg font-black tracking-[0.3em] text-gray-600 mb-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              WINNER
-            </motion.p>
-            
-            <motion.h2 
-              className="text-3xl sm:text-4xl md:text-5xl font-black text-black"
-              style={{ 
-                fontVariantNumeric: 'tabular-nums',
-                fontFamily: 'system-ui, -apple-system, sans-serif'
-              }}
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ 
-                opacity: 1, 
-                scale: 1,
-              }}
-              transition={{ 
-                delay: 0.5, 
-                type: "spring",
-                stiffness: 300
-              }}
-            >
-              {winner}
-            </motion.h2>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* 내 번호 - 미니멀 타이포그래피 */}
-      <motion.div
-        className="mb-12 sm:mb-16"
-        animate={{ 
-          scale: isGlowing ? 1.1 : 1,
-        }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      >
-        <motion.h2
-          className={`text-6xl sm:text-7xl md:text-8xl font-black transition-colors duration-300 ${
-            isGlowing ? 'text-black' : 'text-gray-300'
-          }`}
+      {/* 상단 네비게이션 */}
+      <div className="flex items-center justify-between mb-6 sm:mb-8">
+        {/* 뒤로가기 버튼 */}
+        <motion.button
+          onClick={() => navigate('/')}
+          className="w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          whileTap={{ scale: 0.9 }}
           style={{
-            fontVariantNumeric: 'tabular-nums',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-          }}
-          animate={{
-            letterSpacing: isGlowing ? '0.15em' : '0.1em'
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
           }}
         >
-          {myIndex + 1}
-        </motion.h2>
-      </motion.div>
-      
-      {/* 중앙 인터랙션 영역 - 미니멀 디자인 */}
-      <motion.div
-        ref={buttonRef}
-        className="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full relative border-2 flex items-center justify-center"
-        animate={{ 
-          scale: isGlowing ? 1.2 : 1,
-          borderColor: isGlowing ? '#ffcc00' : '#e5e5e5',
-          backgroundColor: isGlowing ? '#ffcc00' : '#f5f5f5'
-        }}
-        transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
-      >
-        {/* 중앙 인디케이터 */}
-        <motion.div
-          className="w-4 h-4 sm:w-5 sm:h-5 rounded-full"
-          style={{
-            backgroundColor: isGlowing ? '#ffffff' : '#000000'
-          }}
-          animate={{
-            scale: isGlowing ? [1, 1.3, 1] : 1,
-            opacity: [0.7, 1, 0.7]
-          }}
-          transition={{ 
-            duration: isGlowing ? 0.8 : 2,
-            repeat: Infinity,
-            ease: "easeInOut" 
-          }}
-        />
+          ←
+        </motion.button>
         
-        {/* 발광 링 효과 - 미니멀화 */}
+        {/* 게임 타입 인디케이터 */}
+        <motion.div
+          className="w-12 h-12 rounded-full"
+          style={{ backgroundColor: '#ffcc00' }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+        />
+      </div>
+      
+      {/* 중앙 컨텐츠 영역 */}
+      <div className="flex-1 flex flex-col items-center justify-center">
+        {/* 당첨자 텍스트 */}
         <AnimatePresence>
-          {isGlowing && (
-            <>
-              {[...Array(2)].map((_, i) => (
-                <motion.div
-                  key={`ring-${i}`}
-                  className="absolute inset-0 rounded-full border-2"
-                  style={{ borderColor: '#ffcc00' }}
-                  initial={{ scale: 1, opacity: 0.6 }}
-                  animate={{ 
-                    scale: [1, 1.5 + i * 0.3, 2 + i * 0.3],
-                    opacity: [0.6, 0.2, 0]
-                  }}
-                  transition={{ 
-                    duration: 1.2 + i * 0.2,
-                    repeat: Infinity,
-                    ease: "easeOut",
-                    delay: i * 0.2
-                  }}
-                />
-              ))}
-            </>
+          {showWinnerText && winner && (
+            <motion.div
+              className="text-center z-30 px-6 mb-8"
+              initial={{ opacity: 0, y: 30, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -30, scale: 0.8 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 400,
+                damping: 25,
+                delay: 0.1 
+              }}
+            >
+              <motion.p 
+                className="text-sm sm:text-base font-light tracking-[0.3em] text-gray-600 mb-4"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  fontWeight: 300
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                WINNER
+              </motion.p>
+              
+              <motion.h2 
+                className="text-2xl xs:text-3xl sm:text-4xl font-light text-black"
+                style={{ 
+                  fontVariantNumeric: 'tabular-nums',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  fontWeight: 300
+                }}
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ 
+                  opacity: 1, 
+                  scale: 1,
+                }}
+                transition={{ 
+                  delay: 0.5, 
+                  type: "spring",
+                  stiffness: 300
+                }}
+              >
+                {winner}
+              </motion.h2>
+            </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+        
+        {/* 내 번호 */}
+        <motion.div
+          className="mb-8 sm:mb-12"
+          animate={{ 
+            scale: isGlowing ? 1.1 : 1,
+          }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        >
+          <motion.h2
+            className={`text-5xl xs:text-6xl sm:text-7xl font-light transition-colors duration-300 ${
+              isGlowing ? 'text-black' : 'text-gray-300'
+            }`}
+            style={{
+              fontVariantNumeric: 'tabular-nums',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+              fontWeight: 300
+            }}
+            animate={{
+              letterSpacing: isGlowing ? '0.15em' : '0.1em'
+            }}
+          >
+            {myIndex + 1}
+          </motion.h2>
+        </motion.div>
+        
+        {/* 중앙 인터랙션 영역 */}
+        <motion.div
+          ref={buttonRef}
+          className="w-28 h-28 sm:w-32 sm:h-32 rounded-full relative border-2 flex items-center justify-center mb-8"
+          animate={{ 
+            scale: isGlowing ? 1.2 : 1,
+            borderColor: isGlowing ? '#ffcc00' : '#e5e5e5',
+            backgroundColor: isGlowing ? '#ffcc00' : '#f5f5f5'
+          }}
+          transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
+        >
+          {/* 중앙 인디케이터 */}
+          <motion.div
+            className="w-3 h-3 sm:w-4 sm:h-4 rounded-full"
+            style={{
+              backgroundColor: isGlowing ? '#ffffff' : '#000000'
+            }}
+            animate={{
+              scale: isGlowing ? [1, 1.3, 1] : 1,
+              opacity: [0.7, 1, 0.7]
+            }}
+            transition={{ 
+              duration: isGlowing ? 0.8 : 2,
+              repeat: Infinity,
+              ease: "easeInOut" 
+            }}
+          />
+          
+          {/* 발광 링 효과 */}
+          <AnimatePresence>
+            {isGlowing && (
+              <>
+                {[...Array(2)].map((_, i) => (
+                  <motion.div
+                    key={`ring-${i}`}
+                    className="absolute inset-0 rounded-full border-2"
+                    style={{ borderColor: '#ffcc00' }}
+                    initial={{ scale: 1, opacity: 0.6 }}
+                    animate={{ 
+                      scale: [1, 1.5 + i * 0.3, 2 + i * 0.3],
+                      opacity: [0.6, 0.2, 0]
+                    }}
+                    transition={{ 
+                      duration: 1.2 + i * 0.2,
+                      repeat: Infinity,
+                      ease: "easeOut",
+                      delay: i * 0.2
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
       
-      {/* 참가자 수 표시 */}
+      {/* 하단 정보 */}
       <motion.div
-        className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-center"
+        className="text-center"
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.5 }}
       >
-        <p className="text-sm sm:text-base font-black tracking-[0.2em] text-gray-500">
+        <p 
+          className="text-xs sm:text-sm font-light tracking-[0.2em] text-gray-500"
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            fontWeight: 300
+          }}
+        >
           {room.participants.length} PLAYERS
         </p>
       </motion.div>
@@ -441,7 +483,7 @@ export default function ChillGame() {
       <AnimatePresence>
         {winner && (
           <motion.div 
-            className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-95 z-50 p-6"
+            className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-95 z-50"
             style={{
               paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
               paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
@@ -454,7 +496,7 @@ export default function ChillGame() {
             transition={{ delay: 3 }}
           >
             <motion.div 
-              className="text-center max-w-sm w-full"
+              className="text-center max-w-sm w-full px-6"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ 
@@ -471,20 +513,32 @@ export default function ChillGame() {
                 transition={{ delay: 3.5 }}
               >
                 {isWinner && (
-                  <button
+                  <motion.button
                     onClick={resetGame}
-                    className="w-full text-base sm:text-lg font-black tracking-[0.2em] px-6 py-4 sm:py-5 bg-black text-white rounded-full hover:bg-gray-800 transition-all duration-300 min-h-[56px]"
+                    className="w-full text-base sm:text-lg font-light tracking-[0.2em] px-6 py-4 sm:py-5 bg-black text-white rounded-full hover:bg-gray-800 transition-all duration-300 min-h-[56px]"
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     PLAY AGAIN
-                  </button>
+                  </motion.button>
                 )}
                 
-                <button
+                <motion.button
                   onClick={() => navigate('/')}
-                  className="w-full text-base sm:text-lg font-black tracking-[0.2em] px-6 py-4 sm:py-5 border-2 border-gray-600 text-gray-800 rounded-full hover:bg-gray-100 transition-all duration-300 min-h-[56px]"
+                  className="w-full text-base sm:text-lg font-light tracking-[0.2em] px-6 py-4 sm:py-5 border-2 border-gray-600 text-gray-800 rounded-full hover:bg-gray-100 transition-all duration-300 min-h-[56px]"
+                  style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    fontWeight: 300
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   NEW GAME
-                </button>
+                </motion.button>
               </motion.div>
             </motion.div>
           </motion.div>

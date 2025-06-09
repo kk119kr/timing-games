@@ -507,38 +507,54 @@ export default function FreshGame() {
   
   return (
     <motion.div 
-      className="h-screen w-screen flex flex-col items-center justify-center bg-white relative overflow-hidden touch-none"
+      className="h-screen-mobile w-screen flex flex-col bg-white relative overflow-hidden touch-none"
       style={{
         height: '100vh',
-        width: '100vw'
+        height: '100dvh',
+        width: '100vw',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        margin: 0,
+        padding: 0,
+        paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1.5rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1.5rem, env(safe-area-inset-right))'
       }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 뒤로가기 버튼 */}
-      <motion.button
-        onClick={() => navigate('/')}
-        className="absolute top-6 left-6 w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors z-50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        ←
-      </motion.button>
+      {/* 상단 네비게이션 */}
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        {/* 뒤로가기 버튼 */}
+        <motion.button
+          onClick={() => navigate('/')}
+          className="w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          whileTap={{ scale: 0.9 }}
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
+          }}
+        >
+          ←
+        </motion.button>
+        
+        {/* 게임 타입 인디케이터 */}
+        <motion.div
+          className="w-12 h-12 rounded-full"
+          style={{ backgroundColor: '#ff0000' }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+        />
+      </div>
       
-      {/* 게임 타입 인디케이터 */}
+      {/* 라운드 인디케이터 */}
       <motion.div
-        className="absolute top-6 right-6 w-12 h-12 rounded-full"
-        style={{ backgroundColor: '#ff0000' }}
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3 }}
-      />
-      
-      {/* 라운드 인디케이터 - 미니멀 디자인 */}
-      <motion.div
-        className="absolute top-20 left-1/2 transform -translate-x-1/2 flex items-center space-x-4"
+        className="flex items-center justify-center space-x-3 sm:space-x-4 mb-6 sm:mb-8"
         initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
       >
@@ -547,11 +563,11 @@ export default function FreshGame() {
             key={round}
             className="flex flex-col items-center"
             animate={{
-              scale: round === currentRound ? 1.2 : 1,
+              scale: round === currentRound ? 1.1 : 1,
             }}
           >
             <motion.div
-              className={`w-3 h-3 rounded-full border-2 ${
+              className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border-2 ${
                 round < currentRound ? 'bg-black border-black' :
                 round === currentRound ? 'bg-transparent border-black' :
                 'bg-transparent border-gray-300'
@@ -561,9 +577,13 @@ export default function FreshGame() {
               }}
             />
             <motion.p 
-              className={`text-xs mt-2 font-black tracking-[0.1em] ${
+              className={`text-xs mt-1.5 sm:mt-2 font-light tracking-[0.1em] ${
                 round <= currentRound ? 'text-black' : 'text-gray-300'
               }`}
+              style={{
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                fontWeight: 300
+              }}
             >
               {round}
             </motion.p>
@@ -571,60 +591,65 @@ export default function FreshGame() {
         ))}
       </motion.div>
       
-      {/* 중앙 상태 메시지 */}
-      <AnimatePresence mode="wait">
-        {countdown && (
-          <motion.div
-            className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            key="countdown"
-          >
-            <motion.h2
-              className="text-8xl md:text-9xl font-black text-black"
-              animate={{ 
-                scale: [1, 1.1, 1]
-              }}
-              transition={{ duration: 0.6 }}
-              style={{ 
-                fontVariantNumeric: 'tabular-nums',
-                fontFamily: 'system-ui, -apple-system, sans-serif'
-              }}
+      {/* 중앙 컨텐츠 영역 */}
+      <div className="flex-1 flex flex-col items-center justify-center">
+        {/* 중앙 상태 메시지 */}
+        <AnimatePresence mode="wait">
+          {countdown && (
+            <motion.div
+              className="mb-8"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              key="countdown"
             >
-              {countdown}
-            </motion.h2>
-          </motion.div>
-        )}
+              <motion.h2
+                className="text-6xl xs:text-7xl sm:text-8xl font-light text-black"
+                animate={{ 
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{ duration: 0.6 }}
+                style={{ 
+                  fontVariantNumeric: 'tabular-nums',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  fontWeight: 300
+                }}
+              >
+                {countdown}
+              </motion.h2>
+            </motion.div>
+          )}
+          
+          {roundEndMessage && (
+            <motion.div
+              className="mb-8 px-4"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              key="roundEnd"
+            >
+              <motion.h2 
+                className="text-xl xs:text-2xl sm:text-3xl font-light tracking-[0.3em] text-center text-black"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  fontWeight: 300
+                }}
+                animate={{
+                  opacity: [1, 0.7, 1]
+                }}
+                transition={{ duration: 1, repeat: Infinity }}
+              >
+                {roundEndMessage}
+              </motion.h2>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
-        {roundEndMessage && (
-          <motion.div
-            className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            key="roundEnd"
-          >
-            <motion.h2 
-              className="text-2xl md:text-4xl font-black tracking-[0.3em] text-center text-black"
-              animate={{
-                opacity: [1, 0.7, 1]
-              }}
-              transition={{ duration: 1, repeat: Infinity }}
-            >
-              {roundEndMessage}
-            </motion.h2>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* 메인 인터랙션 영역 */}
-      <div className="flex flex-col items-center gap-12 md:gap-16">
-        {/* 메인 버튼 - 미니멀 디자인 */}
-        <motion.div className="relative">
+        {/* 메인 버튼 */}
+        <motion.div className="relative mb-8">
           <motion.button
             ref={buttonRef}
-            className="w-32 h-32 md:w-40 md:h-40 rounded-full relative overflow-hidden border-2 flex items-center justify-center"
+            className="w-28 h-28 xs:w-32 xs:h-32 sm:w-36 sm:h-36 rounded-full relative overflow-hidden border-2 flex items-center justify-center"
             style={{
               borderColor: gamePhase === 'playing' && buttonColor > 60 ? '#ff0000' : '#000000',
               backgroundColor: gamePhase === 'playing' && buttonColor > 0
@@ -642,7 +667,7 @@ export default function FreshGame() {
           >
             {/* 중앙 인디케이터 */}
             <motion.div
-              className="w-4 h-4 md:w-5 md:h-5 rounded-full"
+              className="w-3 h-3 sm:w-4 sm:h-4 rounded-full"
               style={{
                 backgroundColor: gamePhase === 'playing' && buttonColor > 60 ? '#ffffff' : '#000000'
               }}
@@ -657,11 +682,10 @@ export default function FreshGame() {
               }}
             />
             
-            {/* 폭발 효과 - 미니멀화 */}
+            {/* 폭발 효과 */}
             <AnimatePresence>
               {buttonColor >= 100 && (
                 <>
-                  {/* 메인 폭발 플래시 */}
                   <motion.div
                     className="absolute inset-0 bg-red-500 rounded-full"
                     initial={{ scale: 0, opacity: 1 }}
@@ -672,7 +696,6 @@ export default function FreshGame() {
                     transition={{ duration: 1, ease: "easeOut" }}
                   />
                   
-                  {/* 확산되는 링 */}
                   <motion.div
                     className="absolute inset-0 border-4 border-red-500 rounded-full"
                     initial={{ scale: 1, opacity: 1 }}
@@ -688,146 +711,197 @@ export default function FreshGame() {
             </AnimatePresence>
           </motion.button>
         </motion.div>
-        
-        {/* 순서 표시 - 미니멀 가로 리스트 */}
-        <AnimatePresence>
-          {pressedOrder.length > 0 && (
-            <motion.div
-              className="absolute bottom-20 left-1/2 transform -translate-x-1/2 flex flex-wrap justify-center gap-2 max-w-sm"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 30 }}
-            >
-              {pressedOrder.map((name: string, index: number) => {
-                const score = calculatePressedScore(index, pressedOrder.length)
-                
-                return (
-                  <motion.div
-                    key={name}
-                    className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1 border border-gray-200"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.08 }}
-                  >
-                    <motion.div 
-                      className="w-4 h-4 rounded-full border flex items-center justify-center text-xs font-black"
-                      animate={{
-                        backgroundColor: index === 0 ? '#000000' : 'transparent',
-                        color: index === 0 ? '#ffffff' : '#000000',
-                        borderColor: '#000000'
-                      }}
-                    >
-                      {index + 1}
-                    </motion.div>
-                    <span className="text-xs font-black tracking-wide text-black">
-                      {name}
-                    </span>
-                    <span 
-                      className={`text-xs font-black tabular-nums ${
-                        score < 0 ? 'text-red-600' : 
-                        score > 0 ? 'text-green-600' : 
-                        'text-gray-600'
-                      }`}
-                    >
-                      {score > 0 ? '+' : ''}{score}
-                    </span>
-                  </motion.div>
-                )
-              })}
-              
-              {(() => {
-                const totalParticipants = room ? room.participants.length : 0
-                const notPressedCount = totalParticipants - pressedOrder.length
-                return notPressedCount > 0 && gamePhase === 'playing' ? (
-                  <motion.div 
-                    className="text-xs text-gray-500 tracking-[0.2em] font-black px-3 py-1"
-                    animate={{ opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    {notPressedCount} LEFT
-                  </motion.div>
-                ) : null
-              })()}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
       
-      {/* 최종 결과 - 미니멀 디자인 */}
+      {/* 하단 순서 표시 */}
+      <AnimatePresence>
+        {pressedOrder.length > 0 && (
+          <motion.div
+            className="flex flex-wrap justify-center gap-2 max-w-full px-2"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+          >
+            {pressedOrder.slice(0, 6).map((name: string, index: number) => {
+              const score = calculatePressedScore(index, pressedOrder.length)
+              
+              return (
+                <motion.div
+                  key={name}
+                  className="flex items-center gap-1.5 bg-gray-100 rounded-full px-2.5 py-1 border border-gray-200"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.08 }}
+                >
+                  <motion.div 
+                    className="w-3 h-3 rounded-full border flex items-center justify-center text-xs font-light"
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300,
+                      fontSize: '10px'
+                    }}
+                    animate={{
+                      backgroundColor: index === 0 ? '#000000' : 'transparent',
+                      color: index === 0 ? '#ffffff' : '#000000',
+                      borderColor: '#000000'
+                    }}
+                  >
+                    {index + 1}
+                  </motion.div>
+                  <span 
+                    className="text-xs font-light tracking-wide text-black"
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    {name}
+                  </span>
+                  <span 
+                    className={`text-xs font-light tabular-nums ${
+                      score < 0 ? 'text-red-600' : 
+                      score > 0 ? 'text-green-600' : 
+                      'text-gray-600'
+                    }`}
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      fontWeight: 300
+                    }}
+                  >
+                    {score > 0 ? '+' : ''}{score}
+                  </span>
+                </motion.div>
+              )
+            })}
+            
+            {(() => {
+              const totalParticipants = room ? room.participants.length : 0
+              const notPressedCount = totalParticipants - pressedOrder.length
+              return notPressedCount > 0 && gamePhase === 'playing' ? (
+                <motion.div 
+                  className="text-xs text-gray-500 tracking-[0.2em] font-light px-2.5 py-1"
+                  style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    fontWeight: 300
+                  }}
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  {notPressedCount} LEFT
+                </motion.div>
+              ) : null
+            })()}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* 최종 결과 */}
       <AnimatePresence>
         {showResults && (
           <motion.div
-            className="fixed inset-0 bg-white z-30 p-6 flex flex-col"
+            className="fixed inset-0 bg-white z-30 flex flex-col"
+            style={{
+              paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
+              paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+              paddingLeft: 'max(1.5rem, env(safe-area-inset-left))',
+              paddingRight: 'max(1.5rem, env(safe-area-inset-right))'
+            }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            {/* 뒤로가기 버튼 */}
-            <motion.button
-              onClick={() => navigate('/')}
-              className="absolute top-6 left-6 w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors z-50"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              ←
-            </motion.button>
-            
-            <motion.h2 
-              className="text-2xl md:text-3xl font-black tracking-[0.3em] text-center text-black mb-8 mt-16"
-              initial={{ y: -30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-            >
-              FINAL SCORES
-            </motion.h2>
-            
-            <div className="flex-1 max-w-md mx-auto w-full">
-              {getFinalScores().map((result: any, index: number) => (
-                <motion.div
-                  key={result.participant?.id}
-                  className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200"
-                  initial={{ opacity: 0, x: -30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.15 }}
-                  style={{
-                    backgroundColor: index === 0 ? '#000000' : '#f9fafb',
-                    borderColor: index === 0 ? '#000000' : '#e5e7eb',
-                  }}
-                >
-                  <div className="flex items-center space-x-4">
-                    <motion.div 
-                      className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm font-black border-2"
-                      style={{
-                        backgroundColor: index === 0 ? '#ffffff' : 'transparent',
-                        color: index === 0 ? '#000000' : '#000000',
-                        borderColor: index === 0 ? '#ffffff' : '#000000'
-                      }}
-                    >
-                      {index + 1}
-                    </motion.div>
-                    <p 
-                      className={`text-base md:text-lg font-black tracking-[0.1em] ${
-                        index === 0 ? 'text-white' : 'text-black'
-                      }`}
-                    >
-                      {result.participant?.name}
-                    </p>
-                  </div>
-                  <p 
-                    className={`text-lg md:text-xl font-black tabular-nums ${
-                      index === 0 ? 'text-white' : 'text-black'
-                    }`}
-                  >
-                    {result.score > 0 ? '+' : ''}{result.score}
-                  </p>
-                </motion.div>
-              ))}
+            {/* 상단 네비게이션 */}
+            <div className="flex items-center justify-between mb-6 sm:mb-8">
+              <motion.button
+                onClick={() => navigate('/')}
+                className="w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                whileTap={{ scale: 0.9 }}
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
+                }}
+              >
+                ←
+              </motion.button>
+              
+              <motion.h2 
+                className="text-xl xs:text-2xl sm:text-3xl font-light tracking-[0.3em] text-black"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  fontWeight: 300
+                }}
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+              >
+                FINAL SCORES
+              </motion.h2>
+              
+              <div className="w-12" />
             </div>
             
+            {/* 스코어 리스트 */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-sm mx-auto">
+                {getFinalScores().map((result: any, index: number) => (
+                  <motion.div
+                    key={result.participant?.id}
+                    className="flex items-center justify-between mb-3 sm:mb-4 p-3 sm:p-4 bg-gray-50 rounded-xl border border-gray-200"
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.15 }}
+                    style={{
+                      backgroundColor: index === 0 ? '#000000' : '#f9fafb',
+                      borderColor: index === 0 ? '#000000' : '#e5e7eb',
+                    }}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <motion.div 
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-sm font-light border-2"
+                        style={{
+                          backgroundColor: index === 0 ? '#ffffff' : 'transparent',
+                          color: index === 0 ? '#000000' : '#000000',
+                          borderColor: index === 0 ? '#ffffff' : '#000000',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                          fontWeight: 300
+                        }}
+                      >
+                        {index + 1}
+                      </motion.div>
+                      <p 
+                        className={`text-sm sm:text-base font-light tracking-[0.1em] ${
+                          index === 0 ? 'text-white' : 'text-black'
+                        }`}
+                        style={{
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                          fontWeight: 300
+                        }}
+                      >
+                        {result.participant?.name}
+                      </p>
+                    </div>
+                    <p 
+                      className={`text-base sm:text-lg font-light tabular-nums ${
+                        index === 0 ? 'text-white' : 'text-black'
+                      }`}
+                      style={{
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                        fontWeight: 300
+                      }}
+                    >
+                      {result.score > 0 ? '+' : ''}{result.score}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+            
+            {/* 하단 버튼 */}
             <motion.button
               onClick={() => navigate('/')}
-              className="w-full py-4 md:py-5 text-lg md:text-xl font-black tracking-[0.2em] border-2 border-black text-black hover:bg-black hover:text-white transition-all duration-300 rounded-full"
+              className="w-full max-w-sm mx-auto py-4 sm:py-5 text-base sm:text-lg font-light tracking-[0.2em] border-2 border-black text-black hover:bg-black hover:text-white transition-all duration-300 rounded-full min-h-[56px]"
               style={{
-                marginBottom: 'max(1rem, env(safe-area-inset-bottom))'
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                fontWeight: 300
               }}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}

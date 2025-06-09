@@ -85,21 +85,28 @@ export default function WaitingRoom() {
   if (loading) {
     return (
       <div 
-        className="h-screen w-screen flex items-center justify-center bg-white"
+        className="h-screen-mobile w-screen flex items-center justify-center bg-white"
         style={{
           height: '100vh',
+          height: '100dvh',
           width: '100vw',
           position: 'fixed',
           top: 0,
-          left: 0
+          left: 0,
+          margin: 0,
+          padding: 0
         }}
       >
         <motion.div
-          className="w-12 h-12 border-2 border-black rounded-full"
-          style={{ borderTopColor: 'transparent' }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
+          className="text-xl sm:text-2xl font-light tracking-[0.2em] text-gray-400"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
+          }}
+        >
+          LOADING
+        </motion.div>
       </div>
     )
   }
@@ -108,28 +115,54 @@ export default function WaitingRoom() {
   if (error) {
     return (
       <div 
-        className="h-screen w-screen flex flex-col items-center justify-center bg-white"
+        className="h-screen-mobile w-screen flex flex-col items-center justify-center bg-white px-6"
         style={{
           height: '100vh',
+          height: '100dvh',
           width: '100vw',
           position: 'fixed',
           top: 0,
-          left: 0
+          left: 0,
+          margin: 0,
+          padding: '0 1.5rem',
+          paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
+          paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+          paddingLeft: 'max(1.5rem, env(safe-area-inset-left))',
+          paddingRight: 'max(1.5rem, env(safe-area-inset-right))'
         }}
       >
         <motion.div
-          className="text-center"
+          className="text-center max-w-sm w-full"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h2 className="text-2xl font-black tracking-[0.2em] text-black mb-4">ERROR</h2>
-          <p className="text-base font-light text-gray-600 mb-8">{error}</p>
-          <button
+          <h2 
+            className="text-xl sm:text-2xl font-light tracking-[0.2em] text-black mb-6"
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
+            }}
+          >
+            ERROR
+          </h2>
+          <p 
+            className="text-sm sm:text-base font-light text-gray-600 mb-8 leading-relaxed"
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
+            }}
+          >
+            {error}
+          </p>
+          <motion.button
             onClick={() => navigate('/')}
-            className="w-48 h-12 border-2 border-black rounded-full text-black font-light tracking-[0.2em] hover:bg-black hover:text-white transition-all duration-300"
+            className="w-full h-12 sm:h-14 border-2 border-black rounded-full text-black font-light tracking-[0.2em] hover:bg-black hover:text-white transition-all duration-300 min-h-[48px]"
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
             HOME
-          </button>
+          </motion.button>
         </motion.div>
       </div>
     )
@@ -143,101 +176,133 @@ export default function WaitingRoom() {
   
   return (
     <motion.div 
-      className="h-screen w-screen flex flex-col items-center justify-center bg-white relative overflow-hidden"
+      className="h-screen-mobile w-screen flex flex-col bg-white relative overflow-hidden"
       style={{
         height: '100vh',
+        height: '100dvh',
         width: '100vw',
         position: 'fixed',
         top: 0,
-        left: 0
+        left: 0,
+        margin: 0,
+        padding: 0,
+        paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1.5rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1.5rem, env(safe-area-inset-right))'
       }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* 뒤로가기 버튼 */}
-      <motion.button
-        onClick={() => navigate('/')}
-        className="absolute top-6 left-6 w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors z-50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        ←
-      </motion.button>
-      
-      {/* 게임 타입 인디케이터 */}
-      <motion.div
-        className="absolute top-6 right-6 w-12 h-12 rounded-full flex items-center justify-center"
-        style={{ backgroundColor: gameColor }}
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3 }}
-      />
-      
-      {/* 상단 방 ID */}
-      <motion.div
-        className="absolute top-20 left-1/2 transform -translate-x-1/2 text-center"
-        initial={{ y: -30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
-        <motion.h1 
-          className="text-6xl font-black tracking-[0.3em] text-black"
-          style={{ 
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            fontVariantNumeric: 'tabular-nums'
+      {/* 상단 네비게이션 */}
+      <div className="flex items-center justify-between mb-8 sm:mb-12">
+        {/* 뒤로가기 버튼 */}
+        <motion.button
+          onClick={() => navigate('/')}
+          className="w-12 h-12 flex items-center justify-center rounded-full border-2 border-black text-black hover:bg-black hover:text-white transition-colors"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          whileTap={{ scale: 0.9 }}
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
           }}
         >
-          {room.id}
-        </motion.h1>
+          ←
+        </motion.button>
         
+        {/* 게임 타입 인디케이터 */}
         <motion.div
-          className="w-16 h-1 mx-auto mt-4"
+          className="w-12 h-12 rounded-full flex items-center justify-center"
           style={{ backgroundColor: gameColor }}
-          initial={{ width: 0 }}
-          animate={{ width: 64 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
         />
-      </motion.div>
+      </div>
       
-      {/* 중앙 참가자 목록 */}
-      <motion.div 
-        className="flex flex-col items-center justify-center space-y-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-      >
-        <AnimatePresence>
-          {room.participants.map((participant, index) => (
-            <motion.div
-              key={participant.id}
-              className="flex items-center justify-center w-16 h-16 rounded-full border-2"
-              style={{
-                backgroundColor: index === myParticipantIndex ? '#000000' : 'transparent',
-                borderColor: '#000000'
-              }}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0 }}
-              transition={{ delay: index * 0.1 + 0.6 }}
-            >
-              <span 
-                className="text-xl font-light"
+      {/* 중앙 컨텐츠 영역 */}
+      <div className="flex-1 flex flex-col items-center justify-center">
+        {/* 방 ID */}
+        <motion.div
+          className="text-center mb-8 sm:mb-12"
+          initial={{ y: -30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <motion.h1 
+            className="text-4xl xs:text-5xl sm:text-6xl font-light tracking-[0.3em] text-black mb-4"
+            style={{ 
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+              fontVariantNumeric: 'tabular-nums',
+              fontWeight: 300
+            }}
+          >
+            {room.id}
+          </motion.h1>
+          
+          <motion.div
+            className="w-12 sm:w-16 h-1 mx-auto"
+            style={{ backgroundColor: gameColor }}
+            initial={{ width: 0 }}
+            animate={{ width: window.innerWidth < 640 ? 48 : 64 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
+          />
+        </motion.div>
+        
+        {/* 참가자 목록 */}
+        <motion.div 
+          className="flex flex-col items-center justify-center space-y-3 sm:space-y-4 mb-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          <AnimatePresence>
+            {room.participants.map((participant, index) => (
+              <motion.div
+                key={participant.id}
+                className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2"
                 style={{
-                  color: index === myParticipantIndex ? '#ffffff' : '#000000'
+                  backgroundColor: index === myParticipantIndex ? '#000000' : 'transparent',
+                  borderColor: '#000000'
                 }}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0 }}
+                transition={{ delay: index * 0.1 + 0.6 }}
               >
-                {index + 1}
-              </span>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
+                <span 
+                  className="text-lg sm:text-xl font-light"
+                  style={{
+                    color: index === myParticipantIndex ? '#ffffff' : '#000000',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    fontWeight: 300
+                  }}
+                >
+                  {index + 1}
+                </span>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          
+          {/* 참가자 수 표시 */}
+          <motion.p 
+            className="text-xs sm:text-sm font-light tracking-[0.2em] text-gray-500 mt-4"
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+          >
+            {room.participants.length} PLAYERS
+          </motion.p>
+        </motion.div>
+      </div>
       
-      {/* 하단 액션 */}
+      {/* 하단 액션 버튼 */}
       <motion.div 
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+        className="w-full max-w-sm mx-auto"
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.8 }}
@@ -246,11 +311,15 @@ export default function WaitingRoom() {
           <motion.button
             onClick={startGame}
             disabled={!canStartGame}
-            className={`w-64 h-12 rounded-full font-light tracking-[0.3em] transition-all duration-300 ${
+            className={`w-full h-12 sm:h-14 rounded-full font-light tracking-[0.3em] transition-all duration-300 min-h-[48px] ${
               canStartGame
                 ? 'bg-black text-white hover:bg-gray-800'
                 : 'bg-gray-200 text-gray-500 cursor-not-allowed'
             }`}
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+              fontWeight: 300
+            }}
             whileHover={canStartGame ? { scale: 1.02 } : {}}
             whileTap={canStartGame ? { scale: 0.98 } : {}}
           >
@@ -258,11 +327,15 @@ export default function WaitingRoom() {
           </motion.button>
         ) : (
           <motion.div 
-            className="text-center text-gray-600 font-light tracking-[0.2em]"
+            className="w-full h-12 sm:h-14 flex items-center justify-center text-gray-600 font-light tracking-[0.2em]"
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+              fontWeight: 300
+            }}
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            WAITING
+            WAITING FOR HOST
           </motion.div>
         )}
       </motion.div>
