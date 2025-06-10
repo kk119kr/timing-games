@@ -3,6 +3,17 @@ import { motion, useMotionValue, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { createRoom } from '../lib/supabase'
 
+// 정확한 크기 및 위치 계산 함수들
+const getCurrentButtonSize = () => window.innerWidth >= 640 ? 96 : 80
+const getTargetQRSize = () => window.innerWidth < 475 ? 160 : 192
+const getQRPosition = () => {
+  const screenHeight = window.innerHeight
+  if (window.innerWidth < 475) return screenHeight * -0.12
+  if (window.innerWidth < 640) return screenHeight * -0.10  
+  if (window.innerWidth < 1024) return screenHeight * -0.08
+  return screenHeight * -0.06
+}
+
 export default function Home() {
   const navigate = useNavigate()
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -307,7 +318,7 @@ export default function Home() {
         </motion.div>
       </motion.div>
       
-      {/* 사각형 테두리로 모핑 트랜지션 */}
+      {/* 정확한 모핑 트랜지션 */}
       <AnimatePresence>
         {isTransitioning && (
           <motion.div
@@ -324,25 +335,25 @@ export default function Home() {
               transition={{ duration: 0.3, delay: 0.2 }}
             />
             
-            {/* 사각형 테두리로 모핑하는 버튼 */}
+            {/* 정확한 크기와 위치로 모핑하는 버튼 */}
             <motion.div
               className="absolute bg-white border-2 border-black flex items-center justify-center overflow-hidden"
               style={{
-                left: buttonPosition.x - 40, // 원형 버튼 크기의 절반 (80px/2)
-                top: buttonPosition.y - 40,
+                left: buttonPosition.x - (getCurrentButtonSize() / 2),
+                top: buttonPosition.y - (getCurrentButtonSize() / 2),
               }}
               initial={{
-                width: 80,
-                height: 80,
+                width: getCurrentButtonSize(),
+                height: getCurrentButtonSize(),
                 borderRadius: '50%',
               }}
               animate={{
                 left: '50%',
                 top: '50%',
                 x: '-50%',
-                y: '-96px', // CreateRoom의 QR 위치에 맞춤 (중앙에서 위로)
-                width: window.innerWidth < 475 ? 160 : 192, // w-40 h-40 xs:w-48 xs:h-48
-                height: window.innerWidth < 475 ? 160 : 192,
+                y: `${getQRPosition()}px`,
+                width: getTargetQRSize(),
+                height: getTargetQRSize(),
                 borderRadius: 16, // rounded-2xl
               }}
               transition={{
