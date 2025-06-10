@@ -10,18 +10,24 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
-      backgroundColor: "#ffffff",
+      backgroundColor: "#000000", // 검은색 배경
       showSpinner: false
     },
     StatusBar: {
       style: "dark",
-      backgroundColor: "#ffffff"
+      backgroundColor: "#000000", // 검은색으로 변경
+      overlaysWebView: true // 웹뷰 위에 오버레이
     },
     Haptics: {},
     LocalNotifications: {
       smallIcon: "ic_stat_icon_config_sample",
       iconColor: "#000000"
     }
+  },
+  android: {
+    allowMixedContent: true,
+    captureInput: true,
+    webContentsDebuggingEnabled: false
   }
 };
 
