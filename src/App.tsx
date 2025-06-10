@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
+import { initializeApp } from './lib/native'
 import { useEffect } from 'react'
 import Home from './pages/Home'
 import CreateRoom from './pages/CreateRoom'
@@ -26,6 +27,7 @@ function AnimatedRoutes() {
 
 function App() {
   useEffect(() => {
+     initializeApp()
     // 기본 모바일 최적화만
     document.body.style.margin = '0'
     document.body.style.padding = '0'
@@ -35,6 +37,7 @@ function App() {
     document.body.style.height = '100vh'
     document.body.style.height = '100dvh'
     document.body.style.backgroundColor = '#ffffff'
+    document.body.style.margin = '0'
     
     // iOS 특정 설정
     if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {

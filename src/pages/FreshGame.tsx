@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase, subscribeToRoom, updateGameState } from '../lib/supabase'
 import type { GameRoom } from '../lib/supabase'
+import { vibrate } from '../lib/native'
+
 
 interface RoundResult {
   participantId: string
@@ -488,6 +490,8 @@ export default function FreshGame() {
   }
   
   const handleExplosion = () => {
+    vibrate.heavy() // 기존: navigator.vibrate?.([100, 50, 200, 50, 300])
+  createExplosionParticles()
     navigator.vibrate?.([100, 50, 200, 50, 300])
     createExplosionParticles()
     setButtonColor(100)
