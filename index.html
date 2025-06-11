@@ -45,6 +45,10 @@
     
     <title>Timing Games</title>
     
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1269825807163193"
+         crossorigin="anonymous"></script>
+    
     <!-- CSS 변수로 뷰포트 높이 설정 -->
     <style>
       :root {
@@ -118,20 +122,6 @@
         opacity: 0;
       }
     </style>
-    
-    <!-- Google AdSense - 비동기 로딩 -->
-    <script>
-      // AdSense를 비동기로 로드하여 성능 최적화
-      window.addEventListener('load', function() {
-        if (!window.adsbygoogle) {
-          const script = document.createElement('script');
-          script.async = true;
-          script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1269825807163193';
-          script.crossOrigin = 'anonymous';
-          document.head.appendChild(script);
-        }
-      });
-    </script>
     
     <!-- 뷰포트 높이 계산 스크립트 -->
     <script>
