@@ -922,7 +922,7 @@ const getFinalScores = () => {
         <motion.div className="relative mb-8">
           <motion.button
             ref={buttonRef}
-            className="w-28 h-28 xs:w-32 xs:h-32 sm:w-36 sm:h-36 rounded-full relative overflow-hidden border-2 flex items-center justify-center"
+            className="w-32 h-32 xs:w-36 xs:h-36 sm:w-40 sm:h-40 rounded-full relative overflow-hidden border-2 flex items-center justify-center"
             style={{
               borderColor: gamePhase === 'playing' && buttonColor > 60 ? '#ff0000' : '#000000',
               backgroundColor: gamePhase === 'playing' && buttonColor > 0

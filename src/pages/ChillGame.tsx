@@ -412,7 +412,7 @@ const startGlowSequence = async (roomData: GameRoom) => {
         {/* 중앙 인터랙션 영역 */}
         <motion.div
           ref={buttonRef}
-          className="w-28 h-28 sm:w-32 sm:h-32 rounded-full relative border-2 flex items-center justify-center mb-8"
+          className="w-32 h-32 xs:w-36 xs:h-36 sm:w-40 sm:h-40 rounded-full relative border-2 flex items-center justify-center mb-8"
           animate={{ 
             scale: isGlowing ? 1.2 : 1,
             borderColor: isGlowing ? '#ffcc00' : '#e5e5e5',
